@@ -55,9 +55,42 @@ def asgi_app(
         )
     )
     middleware = [Middleware(HeaderMiddleware)]
+
+    on_startup = starlette_settings.pop("on_startup", None)
+    on_shutdown = starlette_settings.pop("on_shutdown", None)
+
+    import inspect
+    from contextlib import asynccontextmanager
+
+    sig = inspect.signature(Starlette.__init__)
+    if "on_startup" in sig.parameters:
+        if on_startup:
+            starlette_settings["on_startup"] = on_startup
+        if on_shutdown:
+            starlette_settings["on_shutdown"] = on_shutdown
+    else:
+        @asynccontextmanager
+        async def lifespan(app):
+            if on_startup:
+                for fn in on_startup:
+                    if asyncio.iscoroutinefunction(fn):
+                        await fn()
+                    else:
+                        fn()
+            yield
+            if on_shutdown:
+                for fn in on_shutdown:
+                    if asyncio.iscoroutinefunction(fn):
+                        await fn()
+                    else:
+                        fn()
+
+        starlette_settings["lifespan"] = lifespan
+
     return Starlette(
         routes=routes, middleware=middleware, debug=debug, **starlette_settings
     )
+
 
 
 def start_server(

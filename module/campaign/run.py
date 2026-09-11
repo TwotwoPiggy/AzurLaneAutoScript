@@ -347,6 +347,16 @@ class CampaignRun(CampaignEvent):
         if self.config.StopCondition_MapAchievement != 'non_stop':
             return False
 
+        # If backup fleet order is configured, check if fleet order switch is needed.
+        # If fleet order changed, we cannot use auto_search_continue,
+        # because the in-game auto search continue menu does not allow changing fleet roles.
+        backup_order = getattr(self.config, 'Fleet_FleetOrderBackup', 'disabled')
+        if backup_order and backup_order != 'disabled':
+            if self.campaign.emotion.should_switch_fleet_order(self.campaign._map_battle):
+                logger.info('Fleet order switched, closing auto search menu to apply new role in fleet preparation')
+                self.config.override(Fleet_FleetOrder=self.campaign.config.Fleet_FleetOrder)
+                return False
+
         return self.run_count > 0 and self.campaign.map_is_auto_search
 
     def handle_commission_notice(self):

@@ -195,6 +195,9 @@ Fleet:
   FleetOrder:
     value: fleet1_mob_fleet2_boss
     option: [ fleet1_mob_fleet2_boss, fleet1_boss_fleet2_mob, fleet1_all_fleet2_standby, fleet1_standby_fleet2_all ]
+  FleetOrderBackup:
+    value: disabled
+    option: [ disabled, fleet1_mob_fleet2_boss, fleet1_boss_fleet2_mob, fleet1_all_fleet2_standby, fleet1_standby_fleet2_all ]
 Submarine:
   Fleet:
     value: 0

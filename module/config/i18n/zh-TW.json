@@ -1013,6 +1013,15 @@
       "fleet1_boss_fleet2_mob": "一隊Boss二隊道中",
       "fleet1_all_fleet2_standby": "一隊全清二隊待機",
       "fleet1_standby_fleet2_all": "一隊待機二隊全清"
+    },
+    "FleetOrderBackup": {
+      "name": "備用艦隊職能",
+      "help": "當主職能因艦隊心情過低無法出擊時，若備用職能滿足出擊條件，則自動切換至備用職能繼續出擊；主職能心情恢復後優先切回主職能。設為 disabled 則不啟用。",
+      "disabled": "不啟用",
+      "fleet1_mob_fleet2_boss": "一隊道中二隊Boss",
+      "fleet1_boss_fleet2_mob": "一隊Boss二隊道中",
+      "fleet1_all_fleet2_standby": "一隊全清二隊待機",
+      "fleet1_standby_fleet2_all": "一隊待機二隊全清"
     }
   },
   "Submarine": {

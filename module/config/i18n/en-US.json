@@ -1013,6 +1013,15 @@
       "fleet1_boss_fleet2_mob": "fleet1_boss_fleet2_mob",
       "fleet1_all_fleet2_standby": "fleet1_all_fleet2_standby",
       "fleet1_standby_fleet2_all": "fleet1_standby_fleet2_all"
+    },
+    "FleetOrderBackup": {
+      "name": "Backup Fleet Roles",
+      "help": "When the primary fleet roles cannot sortie due to low emotion, automatically switch to backup fleet roles if they satisfy emotion requirements; switch back to primary roles once recovered. Set to disabled to turn off.",
+      "disabled": "disabled",
+      "fleet1_mob_fleet2_boss": "fleet1_mob_fleet2_boss",
+      "fleet1_boss_fleet2_mob": "fleet1_boss_fleet2_mob",
+      "fleet1_all_fleet2_standby": "fleet1_all_fleet2_standby",
+      "fleet1_standby_fleet2_all": "fleet1_standby_fleet2_all"
     }
   },
   "Submarine": {

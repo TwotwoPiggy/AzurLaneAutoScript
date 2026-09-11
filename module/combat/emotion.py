@@ -5,7 +5,10 @@ import numpy as np
 
 from module.base.decorator import cached_property
 from module.base.utils import random_normal_distribution_int
-from module.config.config import AzurLaneConfig
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from module.config.config import AzurLaneConfig
 from module.exception import ScriptEnd, ScriptError, RequestHumanTakeover
 from module.logger import logger
 
@@ -158,6 +161,7 @@ class Emotion:
         self.fleet_1 = FleetEmotion(self.config, fleet=1)
         self.fleet_2 = FleetEmotion(self.config, fleet=2)
         self.fleets = [self.fleet_1, self.fleet_2]
+        self.primary_fleet_order = self.config.Fleet_FleetOrder
 
     @property
     def is_calculate(self):
@@ -204,6 +208,117 @@ class Emotion:
         else:
             return 2
 
+    def get_expected_reduce(self, order, battle):
+        """
+        Calculate expected emotion reduction for each fleet under the given fleet order.
+
+        Args:
+            order (str): Fleet order name
+            battle (int): Total battles
+
+        Returns:
+            tuple[int, int] | None: Reduction for fleet 1 and fleet 2, or None if invalid.
+        """
+        if order == 'fleet1_mob_fleet2_boss':
+            distribution = (battle - 1, 1)
+        elif order == 'fleet1_boss_fleet2_mob':
+            distribution = (1, battle - 1)
+        elif order == 'fleet1_all_fleet2_standby':
+            distribution = (battle, 0)
+        elif order == 'fleet1_standby_fleet2_all':
+            distribution = (0, battle)
+        else:
+            return None
+
+        return tuple(np.array(distribution) * self.reduce_per_battle_before_entering)
+
+    def is_order_available(self, order, battle):
+        """
+        Check if the given fleet order has enough emotion to sortie without delay.
+
+        Args:
+            order (str): Fleet order name
+            battle (int): Total battles
+
+        Returns:
+            bool: True if all fleets can sortie without delay.
+        """
+        reduce_amounts = self.get_expected_reduce(order, battle)
+        if reduce_amounts is None:
+            return False
+
+        recovered = max([f.get_recovered(b) for f, b in zip(self.fleets, reduce_amounts)])
+        return recovered <= datetime.now()
+
+    def should_switch_fleet_order(self, battle):
+        """
+        Check and execute switching between primary and backup fleet orders.
+
+        Priority Rules:
+        1. If backup is disabled or same as primary, do nothing.
+        2. If currently on backup order:
+           - If primary order has recovered, switch back to primary order.
+        3. If currently on primary order:
+           - If primary order is not available, but backup order is available,
+             switch to backup order.
+
+        Args:
+            battle (int): Battles in this campaign
+
+        Returns:
+            bool: If fleet order was changed.
+        """
+        if not self.is_calculate:
+            return False
+        if not self.config.FLEET_2:
+            return False
+
+        backup_order = getattr(self.config, 'Fleet_FleetOrderBackup', 'disabled')
+        if not backup_order or backup_order == 'disabled':
+            return False
+
+        primary_order = getattr(self, 'primary_fleet_order', None)
+        if not primary_order:
+            self.primary_fleet_order = self.config.Fleet_FleetOrder
+            primary_order = self.primary_fleet_order
+
+        if backup_order == primary_order:
+            return False
+
+        current_order = self.config.Fleet_FleetOrder
+        self.update()
+
+        # Rule 1: Currently running backup order -> switch back to primary if recovered
+        if current_order == backup_order:
+            if self.is_order_available(primary_order, battle):
+                logger.hr('Fleet Order Switch', level=1)
+                logger.info(
+                    f'Primary fleet order `{primary_order}` has recovered. Switching back from backup `{backup_order}`.'
+                )
+                self.config.Fleet_FleetOrder = primary_order
+                self.config.override(Fleet_FleetOrder=primary_order)
+                logger.attr('Fleet_FleetOrder', primary_order)
+                return True
+            return False
+
+        # Rule 2: Currently running primary order -> switch to backup if primary exhausted
+        if current_order == primary_order:
+            if not self.is_order_available(primary_order, battle):
+                if self.is_order_available(backup_order, battle):
+                    logger.hr('Fleet Order Switch', level=1)
+                    logger.info(
+                        f'Primary fleet order `{primary_order}` cannot sortie due to emotion limit.'
+                    )
+                    logger.info(
+                        f'Switching to backup fleet order `{backup_order}` for seamless sortie.'
+                    )
+                    self.config.Fleet_FleetOrder = backup_order
+                    self.config.override(Fleet_FleetOrder=backup_order)
+                    logger.attr('Fleet_FleetOrder', backup_order)
+                    return True
+
+        return False
+
     def check_reduce(self, battle):
         """
         Check emotion before entering a campaign.
@@ -217,27 +332,27 @@ class Emotion:
         if not self.is_calculate:
             return
 
-        method = self.config.Fleet_FleetOrder
+        total_battle = battle
 
-        if method == 'fleet1_mob_fleet2_boss':
-            battle = (battle - 1, 1)
-        elif method == 'fleet1_boss_fleet2_mob':
-            battle = (1, battle - 1)
-        elif method == 'fleet1_all_fleet2_standby':
-            battle = (battle, 0)
-        elif method == 'fleet1_standby_fleet2_all':
-            battle = (0, battle)
-        else:
+        # Pre-check if we should switch back to primary order or switch to backup
+        if self.should_switch_fleet_order(total_battle):
+            return self.check_reduce(total_battle)
+
+        method = self.config.Fleet_FleetOrder
+        reduce_amounts = self.get_expected_reduce(method, battle)
+        if reduce_amounts is None:
             raise ScriptError(f'Unknown fleet order: {method}')
 
-        battle = tuple(np.array(battle) * self.reduce_per_battle_before_entering)
-        logger.info(f'Expect emotion reduce: {battle}')
+        logger.info(f'Expect emotion reduce: {reduce_amounts}')
 
         self.update()
         self.record()
         self.show()
-        recovered = max([f.get_recovered(b) for f, b in zip(self.fleets, battle)])
+        recovered = max([f.get_recovered(b) for f, b in zip(self.fleets, reduce_amounts)])
         if recovered > datetime.now():
+            if self.should_switch_fleet_order(total_battle):
+                return self.check_reduce(total_battle)
+
             logger.info('Delay current task to prevent emotion control in the future')
             self.config.task_delay(target=recovered)
             raise ScriptEnd('Emotion control')
