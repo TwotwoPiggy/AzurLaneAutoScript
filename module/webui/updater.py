@@ -82,6 +82,7 @@ class Updater(DeployConfig, GitManager, PipManager):
                 pass
 
         source = "origin"
+        self.execute(f'"{self.git}" remote set-url {source} {self.Repository}', allow_failure=True)
         for _ in range(3):
             if self.execute(
                 f'"{self.git}" fetch {source} {self.Branch}', allow_failure=True
@@ -91,19 +92,10 @@ class Updater(DeployConfig, GitManager, PipManager):
             logger.warning("Git fetch failed")
             return False
 
-        log = self.execute_output(
-            f'"{self.git}" log --not --remotes={source}/* -1 --oneline'
-        )
-        if log:
-            logger.info(
-                f"Cannot find local commit {log.split()[0]} in upstream, skip update"
-            )
-            return False
-
         sha1, _, _, message = self.get_commit(f"..{source}/{self.Branch}")
 
         if sha1:
-            logger.info(f"New update available")
+            logger.info(f"New update available from [{getattr(self, 'UpdateSource', 'git')}] {self.Repository}")
             logger.info(f"{sha1[:8]} - {message}")
             return True
         else:

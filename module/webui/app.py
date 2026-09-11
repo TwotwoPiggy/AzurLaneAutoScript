@@ -789,6 +789,7 @@ class AlasGUI(Frame):
         if State.restart_event is None:
             put_warning(t("Gui.Update.DisabledWarn"))
 
+        put_scope("updater_source")
         put_row(
             content=[put_scope("updater_loading"), None, put_scope("updater_state")],
             size="auto .25rem 1fr",
@@ -796,6 +797,74 @@ class AlasGUI(Frame):
 
         put_scope("updater_btn")
         put_scope("updater_info")
+
+        def render_source_selector():
+            with use_scope("updater_source", clear=True):
+                curr = getattr(updater, 'UpdateSource', 'custom')
+                active_repo = updater.Repository
+                active_branch = updater.Branch
+                custom_repo = getattr(updater, 'CustomRepository', None) or ''
+
+                source_name = "🏛️ 官方原版 (Official)" if curr == 'official' else "🌟 个人定制版 (Custom)"
+                badge_color = "#1976d2" if curr == 'official' else "#2e7d32"
+
+                def on_switch_official():
+                    updater.switch_source('official')
+                    toast("已切换为【官方原版】更新源", color="info")
+                    render_source_selector()
+                    updater.check_update()
+
+                def on_switch_custom():
+                    if not getattr(updater, 'CustomRepository', None):
+                        show_custom_modal()
+                    else:
+                        updater.switch_source('custom')
+                        toast("已切换为【个人定制】更新源", color="success")
+                        render_source_selector()
+                        updater.check_update()
+
+                def show_custom_modal():
+                    def on_save():
+                        repo = pin['custom_repo_url']
+                        branch = pin['custom_repo_branch'] or 'master'
+                        if repo:
+                            updater.switch_source('custom', custom_repo=repo.strip(), custom_branch=branch.strip())
+                            close_popup()
+                            toast("个人仓库地址已保存并激活", color="success")
+                            render_source_selector()
+                            updater.check_update()
+
+                    popup("配置个人 GitHub 仓库", [
+                        put_text("请输入您的个人 GitHub 仓库地址（例如 https://github.com/你的用户名/AzurLaneAutoScript）："),
+                        put_input('custom_repo_url', label='仓库地址', value=getattr(updater, 'CustomRepository', '') or ''),
+                        put_input('custom_repo_branch', label='分支名称', value=getattr(updater, 'CustomBranch', 'master') or 'master'),
+                        put_button("保存并切换为个人源", onclick=on_save, color="success")
+                    ])
+
+                put_html(f"""
+                <div style="background: rgba(125,125,125,0.06); border: 1px solid rgba(125,125,125,0.2); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                        <div>
+                            <span style="font-size: 0.9em; color: #666;">当前更新源：</span>
+                            <span style="font-weight: bold; color: {badge_color}; margin-left: 4px;">{source_name}</span>
+                            <div style="font-size: 0.85em; color: #777; margin-top: 4px; word-break: break-all;">
+                                <code>{active_repo}</code> (分支: <code>{active_branch}</code>)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                """)
+
+                put_row([
+                    put_button("切换至官方源", onclick=on_switch_official, color="secondary" if curr == 'official' else "primary"),
+                    None,
+                    put_button("切换至个人源", onclick=on_switch_custom, color="secondary" if curr == 'custom' else "success"),
+                    None,
+                    put_button("⚙️ 配置个人仓库", onclick=show_custom_modal, color="info")
+                ], size="auto .5rem auto .5rem auto")
+                put_html("<hr style='margin: 16px 0; border: none; border-top: 1px solid rgba(125,125,125,0.15);'/>")
+
+        render_source_selector()
 
         def update_table():
             with use_scope("updater_info", clear=True):

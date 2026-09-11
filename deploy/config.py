@@ -18,6 +18,13 @@ class ConfigModel:
     SSLVerify: bool = False
     AutoUpdate: bool = True
 
+    # Multi-source Git update
+    UpdateSource: str = "custom"
+    OfficialRepository: str = "https://github.com/LmeSzinc/AzurLaneAutoScript"
+    OfficialBranch: str = "master"
+    CustomRepository: Optional[str] = None
+    CustomBranch: str = "master"
+
     # Python
     PythonExecutable: str = "./toolkit/python.exe"
     PypiMirror: Optional[str] = None
@@ -136,10 +143,55 @@ class DeployConfig(ConfigModel):
             'GitOverCdn',
             self.Repository == 'git://git.lyoko.io/AzurLaneAutoScript' and self.Branch == 'master'
         )
+        update_source = self.config.get('UpdateSource', getattr(self, 'UpdateSource', 'custom'))
+        official_repo = self.config.get('OfficialRepository', getattr(self, 'OfficialRepository', 'https://github.com/LmeSzinc/AzurLaneAutoScript'))
+        official_branch = self.config.get('OfficialBranch', getattr(self, 'OfficialBranch', 'master'))
+        custom_repo = self.config.get('CustomRepository', getattr(self, 'CustomRepository', None))
+        custom_branch = self.config.get('CustomBranch', getattr(self, 'CustomBranch', 'master'))
+
+        if update_source == 'official':
+            self.Repository = official_repo
+            self.Branch = official_branch
+        elif update_source == 'custom' and custom_repo:
+            self.Repository = custom_repo
+            self.Branch = custom_branch
+
+        self.UpdateSource = update_source
+        self.OfficialRepository = official_repo
+        self.OfficialBranch = official_branch
+        self.CustomRepository = custom_repo
+        self.CustomBranch = custom_branch
+
         if self.Repository in ['global']:
             super().__setattr__('Repository', 'https://github.com/LmeSzinc/AzurLaneAutoScript')
         if self.Repository in ['cn']:
             super().__setattr__('Repository', 'git://git.lyoko.io/AzurLaneAutoScript')
+
+    def switch_source(self, source: str, custom_repo: Optional[str] = None, custom_branch: Optional[str] = None):
+        """
+        Switch active Git update source between 'official' and 'custom'.
+        """
+        self.UpdateSource = source
+        if custom_repo is not None:
+            self.CustomRepository = custom_repo
+            self.config['CustomRepository'] = custom_repo
+        if custom_branch is not None:
+            self.CustomBranch = custom_branch
+            self.config['CustomBranch'] = custom_branch
+
+        if source == 'official':
+            self.Repository = self.OfficialRepository
+            self.Branch = self.OfficialBranch
+        elif source == 'custom' and self.CustomRepository:
+            self.Repository = self.CustomRepository
+            self.Branch = self.CustomBranch
+
+        self.config['UpdateSource'] = self.UpdateSource
+        self.config['OfficialRepository'] = self.OfficialRepository
+        self.config['OfficialBranch'] = self.OfficialBranch
+        self.config['Repository'] = self.Repository
+        self.config['Branch'] = self.Branch
+        self.write()
 
     def filepath(self, key):
         """
