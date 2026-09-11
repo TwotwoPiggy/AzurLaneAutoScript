@@ -852,6 +852,10 @@ class AlasGUI(Frame):
             updater.check_update()
 
         def select_fast_branch(branch_name: str):
+            try:
+                pin['custom_branch_input'] = branch_name
+            except Exception:
+                pass
             repo = getattr(updater, 'CustomRepository', None) or 'https://github.com/TwotwoPiggy/AzurLaneAutoScript'
             updater.switch_source("custom", custom_repo=repo, custom_branch=branch_name)
             render_cards()
@@ -860,8 +864,18 @@ class AlasGUI(Frame):
 
         def show_custom_repo_modal():
             def on_save():
-                repo = (pin.get("modal_repo_url") or "").strip()
-                branch = (pin.get("modal_repo_branch") or "custom").strip()
+                repo = None
+                branch = None
+                try:
+                    repo = pin['modal_repo_url']
+                except Exception:
+                    pass
+                try:
+                    branch = pin['modal_repo_branch']
+                except Exception:
+                    pass
+                repo = (repo or "").strip()
+                branch = (branch or "custom").strip()
                 if repo:
                     updater.switch_source("custom", custom_repo=repo, custom_branch=branch)
                     close_popup()
