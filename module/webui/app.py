@@ -902,96 +902,93 @@ class AlasGUI(Frame):
                 is_official = (curr == 'official')
                 is_custom = (curr == 'custom')
 
-                official_badge = '<span style="background: #1976d2; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; margin-left: 8px;">当前激活</span>' if is_official else ''
-                custom_badge = '<span style="background: #2e7d32; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; margin-left: 8px;">当前激活</span>' if is_custom else ''
+                official_badge = '<span style="background: #1976d2; color: #fff; padding: 1px 6px; border-radius: 3px; font-size: 0.75em; margin-left: 6px;">当前激活</span>' if is_official else ''
+                custom_badge = '<span style="background: #2e7d32; color: #fff; padding: 1px 6px; border-radius: 3px; font-size: 0.75em; margin-left: 6px;">当前激活</span>' if is_custom else ''
 
-                # 顶部状态卡片
+                # 顶部状态横幅
                 put_html(f"""
-                <div style="background: rgba(125,125,125,0.06); border: 1px solid rgba(125,125,125,0.2); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                <div style="background: rgba(125,125,125,0.05); border: 1px solid rgba(125,125,125,0.2); border-radius: 6px; padding: 6px 12px; margin-bottom: 10px; font-size: 0.85em; line-height: 1.4;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
                         <div>
-                            <span style="font-size: 0.9em; color: #666;">当前生效更新源：</span>
-                            <span style="font-weight: bold; color: {'#1976d2' if is_official else '#2e7d32'}; margin-left: 4px;">
+                            <span style="color: #666;">当前生效更新源：</span>
+                            <span style="font-weight: bold; color: {'#1976d2' if is_official else '#2e7d32'};">
                                 {'🏛️ 官方原版 (Official)' if is_official else '🌟 个人私有版 (Custom)'}
                             </span>
-                            <div style="font-size: 0.85em; color: #777; margin-top: 4px; word-break: break-all;">
-                                地址：<code>{active_repo}</code> ｜ 当前追踪分支：<code style="font-weight:bold; color:#d32f2f;">{active_branch}</code>
-                            </div>
+                            <span style="color: #999; margin: 0 6px;">|</span>
+                            <span style="color: #666;">地址：<code>{active_repo}</code></span>
+                            <span style="color: #999; margin: 0 6px;">|</span>
+                            <span style="color: #666;">当前分支：<code style="font-weight:bold; color:#d32f2f;">{active_branch}</code></span>
                         </div>
                     </div>
                 </div>
                 """)
 
-                # 左右两个更新操作卡片
-                card_style_official = f"border: 1px solid {'#1976d2' if is_official else 'rgba(25,118,210,0.25)'}; border-radius: 10px; padding: 16px; background: {'rgba(25,118,210,0.06)' if is_official else 'rgba(25,118,210,0.02)'};"
-                card_style_custom = f"border: 1px solid {'#2e7d32' if is_custom else 'rgba(46,125,50,0.25)'}; border-radius: 10px; padding: 16px; background: {'rgba(46,125,50,0.06)' if is_custom else 'rgba(46,125,50,0.02)'};"
+                # 左右双卡片外壳
+                card_style_official = f"border: 1px solid {'#1976d2' if is_official else 'rgba(25,118,210,0.25)'}; border-radius: 8px; padding: 12px 14px; background: {'rgba(25,118,210,0.05)' if is_official else 'rgba(25,118,210,0.02)'}; height: fit-content;"
+                card_style_custom = f"border: 1px solid {'#2e7d32' if is_custom else 'rgba(46,125,50,0.25)'}; border-radius: 8px; padding: 12px 14px; background: {'rgba(46,125,50,0.05)' if is_custom else 'rgba(46,125,50,0.02)'}; height: fit-content;"
 
-                # 渲染官方卡片内容
-                official_content = [
+                put_row([
+                    put_scope("card_official").style(card_style_official),
+                    None,
+                    put_scope("card_custom").style(card_style_custom),
+                ], size="1fr 12px 1fr").style("align-items: start;")
+
+                # 填充官方卡片内容
+                with use_scope("card_official", clear=True):
                     put_html(f"""
-                    <div style="margin-bottom: 12px;">
-                        <div style="font-size: 1.1em; font-weight: bold; color: #1976d2; display: flex; align-items: center;">
-                            🏛️ 官方更新 (Official) {official_badge}
-                        </div>
-                        <div style="color: #666; font-size: 0.85em; margin-top: 6px; word-break: break-all;">
-                            仓库：<code>https://github.com/LmeSzinc/AzurLaneAutoScript</code>
-                        </div>
-                        <div style="color: #666; font-size: 0.85em; margin-top: 2px;">
-                            分支：<code>master</code> (官方稳定主线)
-                        </div>
-                        <div style="color: #888; font-size: 0.8em; margin-top: 8px;">
-                            用于直接同步官方发布的最新主线改动。
-                        </div>
+                    <div style="font-size: 1.05em; font-weight: bold; color: #1976d2; display: flex; align-items: center; margin-bottom: 6px;">
+                        🏛️ 官方更新 (Official) {official_badge}
                     </div>
-                    """),
+                    <div style="color: #666; font-size: 0.82em; word-break: break-all; margin-bottom: 2px;">
+                        仓库：<code>https://github.com/LmeSzinc/AzurLaneAutoScript</code>
+                    </div>
+                    <div style="color: #666; font-size: 0.82em; margin-bottom: 4px;">
+                        分支：<code>master</code> (官方稳定主线)
+                    </div>
+                    <div style="color: #888; font-size: 0.78em; margin-bottom: 8px;">
+                        用于直接同步官方发布的最新主线改动。
+                    </div>
+                    """)
                     put_row([
                         put_button("🏛️ 官方更新", onclick=on_click_official_update, color="primary"),
                         None,
-                        put_button("🔍 检查官方更新", onclick=on_click_official_check, color="info"),
-                    ], size="auto .5rem auto")
-                ]
+                        put_button("🔍 检查官方更新", onclick=on_click_official_check, color="info", outline=True),
+                    ], size="auto 8px auto")
 
-                # 渲染私有卡片内容
-                custom_content = [
+                # 填充私有卡片内容
+                with use_scope("card_custom", clear=True):
                     put_html(f"""
-                    <div style="margin-bottom: 12px;">
-                        <div style="font-size: 1.1em; font-weight: bold; color: #2e7d32; display: flex; align-items: center;">
-                            🌟 私有更新 (Custom) {custom_badge}
-                        </div>
-                        <div style="color: #666; font-size: 0.85em; margin-top: 6px; word-break: break-all;">
-                            仓库：<code>{custom_repo}</code>
-                        </div>
-                        <div style="color: #888; font-size: 0.8em; margin-top: 8px;">
-                            支持从个人 GitHub 仓库拉取并更新指定分支。
-                        </div>
+                    <div style="font-size: 1.05em; font-weight: bold; color: #2e7d32; display: flex; align-items: center; margin-bottom: 6px;">
+                        🌟 私有更新 (Custom) {custom_badge}
                     </div>
-                    """),
+                    <div style="color: #666; font-size: 0.82em; word-break: break-all; margin-bottom: 2px;">
+                        仓库：<code>{custom_repo}</code>
+                    </div>
+                    <div style="color: #888; font-size: 0.78em; margin-bottom: 8px;">
+                        支持从个人 GitHub 仓库拉取并更新指定分支。
+                    </div>
+                    """)
                     put_row([
-                        put_input('custom_branch_input', label='更新目标分支', value=custom_branch, placeholder='输入分支名，如 custom / master'),
+                        put_input('custom_branch_input', value=custom_branch, placeholder='更新分支: custom / master').style("margin-bottom: 0;"),
                         None,
-                        put_button("⚙️ 仓库配置", onclick=show_custom_repo_modal, color="secondary").style("margin-top: 2rem;"),
-                    ], size="1fr .5rem auto"),
-                    put_html("<div style='font-size: 0.82em; color: #666; margin-top: 4px; margin-bottom: 6px;'>快捷切换分支：</div>"),
+                        put_button("⚙️ 仓库配置", onclick=show_custom_repo_modal, color="secondary", outline=True).style("white-space: nowrap;"),
+                    ], size="1fr 8px auto").style("align-items: center; margin-bottom: 6px;")
+
                     put_row([
-                        put_button("🏷️ custom (智能备用职能)", onclick=lambda: select_fast_branch("custom"), color="success", outline=True),
+                        put_text("快捷分支:").style("font-size: 0.82em; color: #666; line-height: 24px; margin: 0; white-space: nowrap;"),
                         None,
-                        put_button("🏷️ master (官方基线同步)", onclick=lambda: select_fast_branch("master"), color="secondary", outline=True),
-                    ], size="auto .5rem auto"),
-                    put_html("<div style='margin-top: 12px;'></div>"),
+                        put_button("custom", onclick=lambda: select_fast_branch("custom"), color="success", outline=True).style("padding: 2px 8px; font-size: 0.8em;"),
+                        None,
+                        put_button("master", onclick=lambda: select_fast_branch("master"), color="secondary", outline=True).style("padding: 2px 8px; font-size: 0.8em;"),
+                    ], size="auto 6px auto 6px auto").style("align-items: center; margin-bottom: 8px;")
+
                     put_row([
                         put_button("🚀 私有更新", onclick=on_click_custom_update, color="success"),
                         None,
-                        put_button("🔍 检查私有更新", onclick=on_click_custom_check, color="info"),
-                    ], size="auto .5rem auto")
-                ]
+                        put_button("🔍 检查私有更新", onclick=on_click_custom_check, color="info", outline=True),
+                    ], size="auto 8px auto")
 
-                put_row([
-                    put_column(official_content).style(card_style_official),
-                    None,
-                    put_column(custom_content).style(card_style_custom),
-                ], size="1fr 16px 1fr")
-
-                put_html("<hr style='margin: 20px 0; border: none; border-top: 1px solid rgba(125,125,125,0.15);'/>")
+                put_html("<hr style='margin: 12px 0; border: none; border-top: 1px solid rgba(125,125,125,0.15);'/>")
 
         render_cards()
 
