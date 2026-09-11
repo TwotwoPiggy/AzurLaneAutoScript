@@ -28,14 +28,14 @@ if %errorlevel% neq 0 (
 
 for /f "delims=" %%u in ('git remote get-url myrepo') do set CURRENT_MYREPO=%%u
 echo 当前目标仓库: %CURRENT_MYREPO%
-echo 正在将 custom 分支推送到 GitHub 的 master 分支...
+echo 正在将 custom 分支推送到您的个人 GitHub 仓库 (custom 分支)...
 echo.
 
-git -c http.proxy=http://127.0.0.1:10808 push myrepo custom:master
+git -c http.proxy=http://127.0.0.1:10808 push myrepo custom:custom
 if %errorlevel% neq 0 (
     echo.
-    echo [警告] 推送失败，正在尝试无代理重试...
-    git push myrepo custom:master
+    echo [警告] 代理推送失败，正在尝试无代理重试...
+    git push myrepo custom:custom
     if %errorlevel% neq 0 (
         echo.
         echo [错误] 推送失败！请检查：
