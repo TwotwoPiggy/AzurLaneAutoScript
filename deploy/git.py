@@ -48,14 +48,18 @@ class GitManager(DeployConfig):
         logger.hr('Set Git Repository', 1)
         if not self.execute(f'"{self.git}" remote set-url {source} {repo}', allow_failure=True):
             self.execute(f'"{self.git}" remote add {source} {repo}')
+        self.execute(f'"{self.git}" config --local remote.{source}.fetch "+refs/heads/*:refs/remotes/{source}/*"', allow_failure=True)
+        self.execute(f'"{self.git}" config --local gc.auto 0', allow_failure=True)
 
         logger.hr('Fetch Repository Branch', 1)
+        refspec = f'{branch}:refs/remotes/{source}/{branch}'
         if os.path.exists('./.git/shallow'):
             logger.info('Shallow repository detected, fetching with --depth=1')
-            if not self.execute(f'"{self.git}" fetch --depth=1 {source} {branch}', allow_failure=True):
-                self.execute(f'"{self.git}" fetch {source} {branch}')
+            if not self.execute(f'"{self.git}" fetch --depth=1 {source} {refspec}', allow_failure=True):
+                self.execute(f'"{self.git}" fetch {source} {refspec}', allow_failure=True)
         else:
-            self.execute(f'"{self.git}" fetch {source} {branch}')
+            if not self.execute(f'"{self.git}" fetch {source} {refspec}', allow_failure=True):
+                self.execute(f'"{self.git}" fetch {source} {branch}', allow_failure=True)
 
         logger.hr('Pull Repository Branch', 1)
         # Remove git lock
@@ -67,8 +71,13 @@ class GitManager(DeployConfig):
             if os.path.exists(lock_file):
                 logger.info(f'Lock file {lock_file} exists, removing')
                 os.remove(lock_file)
-        self.execute(f'"{self.git}" checkout -B {branch} {source}/{branch}', allow_failure=True)
-        self.execute(f'"{self.git}" reset --hard {source}/{branch}')
+
+        target_ref = f'{source}/{branch}'
+        if not self.execute(f'"{self.git}" rev-parse --verify {target_ref}', allow_failure=True, output=False):
+            target_ref = 'FETCH_HEAD'
+
+        self.execute(f'"{self.git}" checkout -B {branch} {target_ref}', allow_failure=True)
+        self.execute(f'"{self.git}" reset --hard {target_ref}')
         self.execute(f'"{self.git}" pull --ff-only {source} {branch}', allow_failure=True)
 
         logger.hr('Show Version', 1)
