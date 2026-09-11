@@ -62,8 +62,9 @@ class GitManager(DeployConfig):
             if os.path.exists(lock_file):
                 logger.info(f'Lock file {lock_file} exists, removing')
                 os.remove(lock_file)
+        self.execute(f'"{self.git}" checkout -B {branch} {source}/{branch}', allow_failure=True)
         self.execute(f'"{self.git}" reset --hard {source}/{branch}')
-        self.execute(f'"{self.git}" pull --ff-only {source} {branch}')
+        self.execute(f'"{self.git}" pull --ff-only {source} {branch}', allow_failure=True)
 
         logger.hr('Show Version', 1)
         self.execute(f'"{self.git}" --no-pager log --no-merges -1')

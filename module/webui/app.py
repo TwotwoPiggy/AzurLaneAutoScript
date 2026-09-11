@@ -797,74 +797,189 @@ class AlasGUI(Frame):
 
         put_scope("updater_btn")
         put_scope("updater_info")
+        put_scope("updater_detail")
 
-        def render_source_selector():
+        def get_custom_branch_from_pin():
+            branch = None
+            try:
+                branch = pin['custom_branch_input']
+            except Exception:
+                pass
+            if not branch:
+                branch = getattr(updater, 'CustomBranch', 'custom') or 'custom'
+            return branch.strip()
+
+        def on_click_official_update():
+            if updater.state in ("start", "wait", "run update"):
+                toast("更新任务正在进行中，请稍候...", color="warning")
+                return
+            updater.switch_source("official")
+            render_cards()
+            toast("已切换为【官方更新源】(master 分支)，开始执行更新...", color="info")
+            updater.state = 1
+            updater.run_update()
+
+        def on_click_official_check():
+            if updater.state in ("start", "wait", "run update"):
+                toast("更新任务正在进行中，请稍候...", color="warning")
+                return
+            updater.switch_source("official")
+            render_cards()
+            toast("已切换为【官方更新源】(master 分支)，正在检查更新...", color="info")
+            updater.check_update()
+
+        def on_click_custom_update():
+            if updater.state in ("start", "wait", "run update"):
+                toast("更新任务正在进行中，请稍候...", color="warning")
+                return
+            branch = get_custom_branch_from_pin()
+            repo = getattr(updater, 'CustomRepository', None) or 'https://github.com/TwotwoPiggy/AzurLaneAutoScript'
+            updater.switch_source("custom", custom_repo=repo, custom_branch=branch)
+            render_cards()
+            toast(f"已切换为【私有更新源】({branch} 分支)，开始执行更新...", color="success")
+            updater.state = 1
+            updater.run_update()
+
+        def on_click_custom_check():
+            if updater.state in ("start", "wait", "run update"):
+                toast("更新任务正在进行中，请稍候...", color="warning")
+                return
+            branch = get_custom_branch_from_pin()
+            repo = getattr(updater, 'CustomRepository', None) or 'https://github.com/TwotwoPiggy/AzurLaneAutoScript'
+            updater.switch_source("custom", custom_repo=repo, custom_branch=branch)
+            render_cards()
+            toast(f"已切换为【私有更新源】({branch} 分支)，正在检查更新...", color="info")
+            updater.check_update()
+
+        def select_fast_branch(branch_name: str):
+            repo = getattr(updater, 'CustomRepository', None) or 'https://github.com/TwotwoPiggy/AzurLaneAutoScript'
+            updater.switch_source("custom", custom_repo=repo, custom_branch=branch_name)
+            render_cards()
+            toast(f"已切换至私有源 [{branch_name}] 分支", color="success")
+            updater.check_update()
+
+        def show_custom_repo_modal():
+            def on_save():
+                repo = (pin.get("modal_repo_url") or "").strip()
+                branch = (pin.get("modal_repo_branch") or "custom").strip()
+                if repo:
+                    updater.switch_source("custom", custom_repo=repo, custom_branch=branch)
+                    close_popup()
+                    toast("个人仓库配置已保存并激活", color="success")
+                    render_cards()
+                    updater.check_update()
+
+            popup("配置个人 GitHub 仓库", [
+                put_text("请输入您的个人 GitHub 仓库地址与默认更新分支："),
+                put_input('modal_repo_url', label='仓库地址', value=getattr(updater, 'CustomRepository', '') or 'https://github.com/TwotwoPiggy/AzurLaneAutoScript'),
+                put_input('modal_repo_branch', label='默认分支', value=getattr(updater, 'CustomBranch', 'custom') or 'custom'),
+                put_button("保存并切换", onclick=on_save, color="success")
+            ])
+
+        def render_cards():
             with use_scope("updater_source", clear=True):
                 curr = getattr(updater, 'UpdateSource', 'custom')
                 active_repo = updater.Repository
                 active_branch = updater.Branch
-                custom_repo = getattr(updater, 'CustomRepository', None) or ''
 
-                source_name = "🏛️ 官方原版 (Official)" if curr == 'official' else "🌟 个人定制版 (Custom)"
-                badge_color = "#1976d2" if curr == 'official' else "#2e7d32"
+                custom_repo = getattr(updater, 'CustomRepository', None) or 'https://github.com/TwotwoPiggy/AzurLaneAutoScript'
+                custom_branch = getattr(updater, 'CustomBranch', 'custom') or 'custom'
 
-                def on_switch_official():
-                    updater.switch_source('official')
-                    toast("已切换为【官方原版】更新源", color="info")
-                    render_source_selector()
-                    updater.check_update()
+                is_official = (curr == 'official')
+                is_custom = (curr == 'custom')
 
-                def on_switch_custom():
-                    if not getattr(updater, 'CustomRepository', None):
-                        show_custom_modal()
-                    else:
-                        updater.switch_source('custom')
-                        toast("已切换为【个人定制】更新源", color="success")
-                        render_source_selector()
-                        updater.check_update()
+                official_badge = '<span style="background: #1976d2; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; margin-left: 8px;">当前激活</span>' if is_official else ''
+                custom_badge = '<span style="background: #2e7d32; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; margin-left: 8px;">当前激活</span>' if is_custom else ''
 
-                def show_custom_modal():
-                    def on_save():
-                        repo = pin['custom_repo_url']
-                        branch = pin['custom_repo_branch'] or 'master'
-                        if repo:
-                            updater.switch_source('custom', custom_repo=repo.strip(), custom_branch=branch.strip())
-                            close_popup()
-                            toast("个人仓库地址已保存并激活", color="success")
-                            render_source_selector()
-                            updater.check_update()
-
-                    popup("配置个人 GitHub 仓库", [
-                        put_text("请输入您的个人 GitHub 仓库地址（例如 https://github.com/你的用户名/AzurLaneAutoScript）："),
-                        put_input('custom_repo_url', label='仓库地址', value=getattr(updater, 'CustomRepository', '') or ''),
-                        put_input('custom_repo_branch', label='分支名称', value=getattr(updater, 'CustomBranch', 'master') or 'master'),
-                        put_button("保存并切换为个人源", onclick=on_save, color="success")
-                    ])
-
+                # 顶部状态卡片
                 put_html(f"""
                 <div style="background: rgba(125,125,125,0.06); border: 1px solid rgba(125,125,125,0.2); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;">
                     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
                         <div>
-                            <span style="font-size: 0.9em; color: #666;">当前更新源：</span>
-                            <span style="font-weight: bold; color: {badge_color}; margin-left: 4px;">{source_name}</span>
+                            <span style="font-size: 0.9em; color: #666;">当前生效更新源：</span>
+                            <span style="font-weight: bold; color: {'#1976d2' if is_official else '#2e7d32'}; margin-left: 4px;">
+                                {'🏛️ 官方原版 (Official)' if is_official else '🌟 个人私有版 (Custom)'}
+                            </span>
                             <div style="font-size: 0.85em; color: #777; margin-top: 4px; word-break: break-all;">
-                                <code>{active_repo}</code> (分支: <code>{active_branch}</code>)
+                                地址：<code>{active_repo}</code> ｜ 当前追踪分支：<code style="font-weight:bold; color:#d32f2f;">{active_branch}</code>
                             </div>
                         </div>
                     </div>
                 </div>
                 """)
 
-                put_row([
-                    put_button("切换至官方源", onclick=on_switch_official, color="secondary" if curr == 'official' else "primary"),
-                    None,
-                    put_button("切换至个人源", onclick=on_switch_custom, color="secondary" if curr == 'custom' else "success"),
-                    None,
-                    put_button("⚙️ 配置个人仓库", onclick=show_custom_modal, color="info")
-                ], size="auto .5rem auto .5rem auto")
-                put_html("<hr style='margin: 16px 0; border: none; border-top: 1px solid rgba(125,125,125,0.15);'/>")
+                # 左右两个更新操作卡片
+                card_style_official = f"border: 1px solid {'#1976d2' if is_official else 'rgba(25,118,210,0.25)'}; border-radius: 10px; padding: 16px; background: {'rgba(25,118,210,0.06)' if is_official else 'rgba(25,118,210,0.02)'};"
+                card_style_custom = f"border: 1px solid {'#2e7d32' if is_custom else 'rgba(46,125,50,0.25)'}; border-radius: 10px; padding: 16px; background: {'rgba(46,125,50,0.06)' if is_custom else 'rgba(46,125,50,0.02)'};"
 
-        render_source_selector()
+                # 渲染官方卡片内容
+                official_content = [
+                    put_html(f"""
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 1.1em; font-weight: bold; color: #1976d2; display: flex; align-items: center;">
+                            🏛️ 官方更新 (Official) {official_badge}
+                        </div>
+                        <div style="color: #666; font-size: 0.85em; margin-top: 6px; word-break: break-all;">
+                            仓库：<code>https://github.com/LmeSzinc/AzurLaneAutoScript</code>
+                        </div>
+                        <div style="color: #666; font-size: 0.85em; margin-top: 2px;">
+                            分支：<code>master</code> (官方稳定主线)
+                        </div>
+                        <div style="color: #888; font-size: 0.8em; margin-top: 8px;">
+                            用于直接同步官方发布的最新主线改动。
+                        </div>
+                    </div>
+                    """),
+                    put_row([
+                        put_button("🏛️ 官方更新", onclick=on_click_official_update, color="primary"),
+                        None,
+                        put_button("🔍 检查官方更新", onclick=on_click_official_check, color="info"),
+                    ], size="auto .5rem auto")
+                ]
+
+                # 渲染私有卡片内容
+                custom_content = [
+                    put_html(f"""
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 1.1em; font-weight: bold; color: #2e7d32; display: flex; align-items: center;">
+                            🌟 私有更新 (Custom) {custom_badge}
+                        </div>
+                        <div style="color: #666; font-size: 0.85em; margin-top: 6px; word-break: break-all;">
+                            仓库：<code>{custom_repo}</code>
+                        </div>
+                        <div style="color: #888; font-size: 0.8em; margin-top: 8px;">
+                            支持从个人 GitHub 仓库拉取并更新指定分支。
+                        </div>
+                    </div>
+                    """),
+                    put_row([
+                        put_input('custom_branch_input', label='更新目标分支', value=custom_branch, placeholder='输入分支名，如 custom / master'),
+                        None,
+                        put_button("⚙️ 仓库配置", onclick=show_custom_repo_modal, color="secondary").style("margin-top: 2rem;"),
+                    ], size="1fr .5rem auto"),
+                    put_html("<div style='font-size: 0.82em; color: #666; margin-top: 4px; margin-bottom: 6px;'>快捷切换分支：</div>"),
+                    put_row([
+                        put_button("🏷️ custom (智能备用职能)", onclick=lambda: select_fast_branch("custom"), color="success", outline=True),
+                        None,
+                        put_button("🏷️ master (官方基线同步)", onclick=lambda: select_fast_branch("master"), color="secondary", outline=True),
+                    ], size="auto .5rem auto"),
+                    put_html("<div style='margin-top: 12px;'></div>"),
+                    put_row([
+                        put_button("🚀 私有更新", onclick=on_click_custom_update, color="success"),
+                        None,
+                        put_button("🔍 检查私有更新", onclick=on_click_custom_check, color="info"),
+                    ], size="auto .5rem auto")
+                ]
+
+                put_row([
+                    put_column(official_content).style(card_style_official),
+                    None,
+                    put_column(custom_content).style(card_style_custom),
+                ], size="1fr 16px 1fr")
+
+                put_html("<hr style='margin: 20px 0; border: none; border-top: 1px solid rgba(125,125,125,0.15);'/>")
+
+        render_cards()
 
         def update_table():
             with use_scope("updater_info", clear=True):
@@ -874,8 +989,8 @@ class AlasGUI(Frame):
                 )
                 put_table(
                     [
-                        [t("Gui.Update.Local"), *local_commit],
-                        [t("Gui.Update.Upstream"), *upstream_commit],
+                        [t("Gui.Update.Local"), *(local_commit or ["-", "-", "-", "-"])],
+                        [t("Gui.Update.Upstream"), *(upstream_commit or ["-", "-", "-", "-"])],
                     ],
                     header=[
                         "",
@@ -890,15 +1005,18 @@ class AlasGUI(Frame):
                 history = updater.get_commit(
                     f"origin/{updater.Branch}", n=20, short_sha1=True
                 )
-                put_table(
-                    [commit for commit in history],
-                    header=[
-                        "SHA1",
-                        t("Gui.Update.Author"),
-                        t("Gui.Update.Time"),
-                        t("Gui.Update.Message"),
-                    ],
-                )
+                if history and isinstance(history, list) and len(history) > 0 and history[0]:
+                    put_table(
+                        [commit for commit in history if commit and len(commit) >= 4],
+                        header=[
+                            "SHA1",
+                            t("Gui.Update.Author"),
+                            t("Gui.Update.Time"),
+                            t("Gui.Update.Message"),
+                        ],
+                    )
+                else:
+                    put_text("暂无提交历史记录或尚未拉取远端分支")
 
         def u(state):
             if state == -1:
@@ -911,12 +1029,6 @@ class AlasGUI(Frame):
                     "--loading-border-fill--"
                 )
                 put_text(t("Gui.Update.UpToDate"), scope="updater_state")
-                put_button(
-                    t("Gui.Button.CheckUpdate"),
-                    onclick=updater.check_update,
-                    color="info",
-                    scope="updater_btn",
-                )
                 update_table()
             elif state == 1:
                 put_loading("grow", "success", "updater_loading").style(
@@ -924,7 +1036,7 @@ class AlasGUI(Frame):
                 )
                 put_text(t("Gui.Update.HaveUpdate"), scope="updater_state")
                 put_button(
-                    t("Gui.Button.ClickToUpdate"),
+                    f"点击更新当前源 ({updater.Branch})",
                     onclick=updater.run_update,
                     color="success",
                     scope="updater_btn",

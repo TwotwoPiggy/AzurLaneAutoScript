@@ -103,6 +103,8 @@ class GitManager(DeployConfig):
             if os.path.exists(lock_file):
                 logger.info(f'Lock file {lock_file} exists, removing')
                 os.remove(lock_file)
+        # Ensure we are on the target branch (creating or resetting local branch tracking remote)
+        self.execute(f'"{self.git}" checkout -B {branch} {source}/{branch}', allow_failure=True)
         self.execute(f'"{self.git}" reset --hard {source}/{branch}')
         Progress.GitReset()
         # Since `git fetch` is already called, checkout is faster

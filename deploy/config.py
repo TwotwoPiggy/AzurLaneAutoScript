@@ -146,13 +146,17 @@ class DeployConfig(ConfigModel):
         update_source = self.config.get('UpdateSource', getattr(self, 'UpdateSource', 'custom'))
         official_repo = self.config.get('OfficialRepository', getattr(self, 'OfficialRepository', 'https://github.com/LmeSzinc/AzurLaneAutoScript'))
         official_branch = self.config.get('OfficialBranch', getattr(self, 'OfficialBranch', 'master'))
-        custom_repo = self.config.get('CustomRepository', getattr(self, 'CustomRepository', None))
-        custom_branch = self.config.get('CustomBranch', getattr(self, 'CustomBranch', 'master'))
+        custom_repo = self.config.get('CustomRepository', getattr(self, 'CustomRepository', 'https://github.com/TwotwoPiggy/AzurLaneAutoScript'))
+        if not custom_repo:
+            custom_repo = 'https://github.com/TwotwoPiggy/AzurLaneAutoScript'
+        custom_branch = self.config.get('CustomBranch', getattr(self, 'CustomBranch', 'custom'))
+        if not custom_branch:
+            custom_branch = 'custom'
 
         if update_source == 'official':
             self.Repository = official_repo
             self.Branch = official_branch
-        elif update_source == 'custom' and custom_repo:
+        elif update_source == 'custom':
             self.Repository = custom_repo
             self.Branch = custom_branch
 
