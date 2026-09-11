@@ -789,6 +789,18 @@ class AlasGUI(Frame):
         if State.restart_event is None:
             put_warning(t("Gui.Update.DisabledWarn"))
 
+        # 隐藏更新器页面中所有冗余重复的免责退款声明
+        put_html("""
+        <style>
+            #pywebio-scope-updater_source .markdown,
+            #pywebio-scope-card_official .markdown,
+            #pywebio-scope-card_custom .markdown,
+            #pywebio-scope-content > .markdown {
+                display: none !important;
+            }
+        </style>
+        """)
+
         put_scope("updater_source")
         put_row(
             content=[put_scope("updater_loading"), None, put_scope("updater_state")],
@@ -989,6 +1001,14 @@ class AlasGUI(Frame):
                     ], size="auto 8px auto")
 
                 put_html("<hr style='margin: 12px 0; border: none; border-top: 1px solid rgba(125,125,125,0.15);'/>")
+
+                # 执行 JS 彻底移除更新器作用域内可能残留的免责退款声明 DOM 节点
+                run_js("""
+                    $('#pywebio-scope-content').find('*').filter(function() {
+                        var text = $(this).text();
+                        return (text.indexOf('paid for Alas') !== -1 || text.indexOf('如果你在任何渠道付费购买') !== -1) && $(this).children().length === 0;
+                    }).closest('.markdown, div[style*="text-align: center"]').remove();
+                """)
 
         render_cards()
 
