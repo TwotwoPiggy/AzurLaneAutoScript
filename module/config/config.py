@@ -92,8 +92,10 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
         # Scheduler queue, will be updated in `get_next_task()`, list of Function objects
         # pending_task: Run time has been reached, but haven't been run due to task scheduling.
         # waiting_task: Run time haven't been reached, wait needed.
+        # disabled_task: Task is disabled by user.
         self.pending_task = []
         self.waiting_task = []
+        self.disabled_task = []
         # Task to run and bind.
         # Task means the name of the function to run in AzurLaneAutoScript class.
         self.task: Function
@@ -205,6 +207,7 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
         """
         pending = []
         waiting = []
+        disabled = []
         error = []
         now = datetime.now()
         if AzurLaneConfig.is_hoarding_task:
@@ -212,6 +215,8 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
         for func in self.data.values():
             func = Function(func)
             if not func.enable:
+                if func.command != "Unknown" and func.command.lower() not in ['alas', 'template', 'restart']:
+                    disabled.append(func)
                 continue
             if not isinstance(func.next_run, datetime):
                 error.append(func)
@@ -227,11 +232,14 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
         if waiting:
             waiting = f.apply(waiting)
             waiting = sorted(waiting, key=operator.attrgetter("next_run"))
+        if disabled:
+            disabled = f.apply(disabled)
         if error:
             pending = error + pending
 
         self.pending_task = pending
         self.waiting_task = waiting
+        self.disabled_task = disabled
 
     def get_next(self):
         """

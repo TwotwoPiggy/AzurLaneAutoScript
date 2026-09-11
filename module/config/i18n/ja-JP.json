@@ -3033,9 +3033,21 @@
       "Scheduler": "スケジューラー",
       "Log": "ログ",
       "Running": "実行中",
+      "Favorites": "お気に入り",
       "Pending": "隊列中",
       "Waiting": "Waiting",
-      "NoTask": "No Task"
+      "Disabled": "無効",
+      "Enabled": "有効",
+      "RunNowSuccess": "すぐに実行するように設定",
+      "NoTask": "No Task",
+      "NoFavorite": "お気に入りタスクはありません、「+」で追加"
+    },
+    "Button": {
+      "Setting": "設定",
+      "RunNow": "実行",
+      "Enable": "有効化",
+      "Disable": "無効化",
+      "AddFavorite": "➕ お気に入り追加"
     },
     "AddAlas": {
       "PopupTitle": "新しいコンフィグを追加",

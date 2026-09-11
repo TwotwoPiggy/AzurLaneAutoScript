@@ -3033,9 +3033,21 @@
       "Scheduler": "调度器",
       "Log": "日志",
       "Running": "运行中",
+      "Favorites": "已收藏",
       "Pending": "队列中",
       "Waiting": "等待中",
-      "NoTask": "无任务"
+      "Disabled": "已禁用",
+      "Enabled": "已启用",
+      "RunNowSuccess": "已设为立即运行",
+      "NoTask": "无任务",
+      "NoFavorite": "暂无收藏任务，点击右上角【添加收藏】快速加入"
+    },
+    "Button": {
+      "Setting": "设置",
+      "RunNow": "运行",
+      "Enable": "启用",
+      "Disable": "关闭",
+      "AddFavorite": "➕ 添加收藏"
     },
     "AddAlas": {
       "PopupTitle": "添加新配置",

@@ -3033,9 +3033,21 @@
       "Scheduler": "Scheduler",
       "Log": "Log",
       "Running": "Running",
+      "Favorites": "Favorites",
       "Pending": "Pending",
       "Waiting": "Waiting",
-      "NoTask": "No Task"
+      "Disabled": "Disabled",
+      "Enabled": "Enabled",
+      "RunNowSuccess": "Set to run now",
+      "NoTask": "No Task",
+      "NoFavorite": "No favorite tasks yet, click [+] to add"
+    },
+    "Button": {
+      "Setting": "Setting",
+      "RunNow": "Run",
+      "Enable": "Enable",
+      "Disable": "Disable",
+      "AddFavorite": "➕ Add Favorite"
     },
     "AddAlas": {
       "PopupTitle": "Add new config",

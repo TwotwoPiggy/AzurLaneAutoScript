@@ -408,6 +408,95 @@ class AlasGUI(Frame):
             color="navigator",
         )
 
+    def alas_task_run_now(self, command: str) -> None:
+        try:
+            config = self.alas_config.read_file(self.alas_name)
+            now = datetime.now().replace(microsecond=0)
+            deep_set(config, f"{command}.Scheduler.NextRun", now)
+            deep_set(config, f"{command}.Scheduler.Enable", True)
+            self.alas_config.write_file(self.alas_name, config)
+            task_name = t(f"Task.{command}.name")
+            toast(f"【{task_name}】{t('Gui.Overview.RunNowSuccess')}", duration=1.5, color="success")
+            self.alas_update_overview_task()
+        except Exception as e:
+            logger.exception(e)
+            toast(str(e), duration=2, color="error")
+
+    def alas_task_toggle_enable(self, command: str, enable: bool) -> None:
+        try:
+            config = self.alas_config.read_file(self.alas_name)
+            deep_set(config, f"{command}.Scheduler.Enable", enable)
+            self.alas_config.write_file(self.alas_name, config)
+            status_text = t("Gui.Overview.Enabled") if enable else t("Gui.Overview.Disabled")
+            task_name = t(f"Task.{command}.name")
+            toast(f"【{task_name}】{status_text}", duration=1.5, color="info")
+            self.alas_update_overview_task()
+        except Exception as e:
+            logger.exception(e)
+            toast(str(e), duration=2, color="error")
+
+    def alas_get_favorites(self) -> List[str]:
+        config = self.alas_config.read_file(self.alas_name)
+        favs = deep_get(config, "Alas.Storage.Storage.Favorites", default=[])
+        return [f for f in favs if isinstance(f, str)] if isinstance(favs, list) else []
+
+    def alas_toggle_favorite(self, command: str) -> None:
+        try:
+            config = self.alas_config.read_file(self.alas_name)
+            favs = deep_get(config, "Alas.Storage.Storage.Favorites", default=[])
+            if not isinstance(favs, list):
+                favs = []
+            favs = [f for f in favs if isinstance(f, str)]
+            task_name = t(f"Task.{command}.name")
+            if command in favs:
+                favs.remove(command)
+                toast(f"已取消收藏【{task_name}】", duration=1.5, color="info")
+            else:
+                favs.append(command)
+                toast(f"已收藏【{task_name}】", duration=1.5, color="success")
+            deep_set(config, "Alas.Storage.Storage.Favorites", favs)
+            self.alas_config.write_file(self.alas_name, config)
+            self.alas_update_overview_task()
+        except Exception as e:
+            logger.exception(e)
+            toast(str(e), duration=2, color="error")
+
+    def alas_popup_add_favorite(self) -> None:
+        current_favs = set(self.alas_get_favorites())
+        options = []
+        for menu, task_data in self.ALAS_MENU.items():
+            menu_name = t(f"Menu.{menu}.name")
+            for task in task_data.get("tasks", []):
+                if task.lower() in ["alas", "template", "restart"] or task in current_favs:
+                    continue
+                task_name = t(f"Task.{task}.name")
+                options.append({"label": f"{task_name} ({menu_name})", "value": task})
+
+        if not options:
+            toast("所有可用任务已全部收藏！", duration=2, color="info")
+            return
+
+        def on_confirm():
+            selected = pin.popup_add_favorite_select
+            close_popup()
+            if selected:
+                self.alas_toggle_favorite(selected)
+
+        popup(
+            title=t("Gui.Button.AddFavorite"),
+            content=[
+                put_text("选择要加入收藏的任务："),
+                put_select("popup_add_favorite_select", options=options),
+                put_row(
+                    [
+                        put_button(t("Gui.AddAlas.Confirm"), onclick=on_confirm, color="success"),
+                        put_button(t("Gui.AppManage.Back"), onclick=close_popup, color="secondary"),
+                    ],
+                    size="auto auto",
+                ).style("margin-top: 1rem; gap: 8px; justify-content: flex-end;"),
+            ],
+        )
+
     @use_scope("content", clear=True)
     def alas_overview(self) -> None:
         self.init_menu(name="Overview")
@@ -434,6 +523,24 @@ class AlasGUI(Frame):
                 ],
             )
             put_scope(
+                "favorites",
+                [
+                    put_row(
+                        [
+                            put_text(t("Gui.Overview.Favorites")),
+                            put_button(
+                                label=t("Gui.Button.AddFavorite"),
+                                onclick=self.alas_popup_add_favorite,
+                                color="off",
+                            ).style("margin: auto 0 auto auto; padding: .15rem .5rem; font-size: .85rem;"),
+                        ],
+                        size="1fr auto",
+                    ),
+                    put_html('<hr class="hr-group">'),
+                    put_scope("favorite_tasks"),
+                ],
+            )
+            put_scope(
                 "pending",
                 [
                     put_text(t("Gui.Overview.Pending")),
@@ -447,6 +554,16 @@ class AlasGUI(Frame):
                     put_text(t("Gui.Overview.Waiting")),
                     put_html('<hr class="hr-group">'),
                     put_scope("waiting_tasks"),
+                ],
+            )
+            put_scope(
+                "disabled",
+                [
+                    put_collapse(
+                        title=t("Gui.Overview.Disabled"),
+                        content=[put_scope("disabled_tasks")],
+                        open=False,
+                    )
                 ],
             )
 
@@ -599,41 +716,123 @@ class AlasGUI(Frame):
             running = []
             pending = []
         waiting = self.alas_config.waiting_task
+        disabled = getattr(self.alas_config, "disabled_task", [])
+        fav_commands = self.alas_get_favorites()
 
-        def put_task(func: Function):
-            with use_scope(f"overview-task_{func.command}"):
+        def put_task(func: Function, status: str = "normal", is_favorite: bool = False, prefix: str = ""):
+            with use_scope(f"overview-task_{prefix}_{func.command}"):
+                if status == "running":
+                    time_str = t("Gui.Overview.Running")
+                elif status == "pending":
+                    time_str = t("Gui.Overview.Pending")
+                elif status == "disabled":
+                    time_str = t("Gui.Overview.Disabled")
+                else:
+                    time_str = str(func.next_run)
+
                 put_column(
                     [
                         put_text(t(f"Task.{func.command}.name")).style("--arg-title--"),
-                        put_text(str(func.next_run)).style("--arg-help--"),
+                        put_text(time_str).style("--arg-help--"),
                     ],
                     size="auto auto",
                 )
-                put_button(
-                    label=t("Gui.Button.Setting"),
-                    onclick=lambda: self.alas_set_group(func.command),
-                    color="off",
+                btns = []
+                if status in ("waiting", "pending"):
+                    btns.append(
+                        put_button(
+                            label=t("Gui.Button.RunNow"),
+                            onclick=partial(self.alas_task_run_now, func.command),
+                            color="success",
+                        )
+                    )
+                    btns.append(
+                        put_button(
+                            label=t("Gui.Button.Disable"),
+                            onclick=partial(self.alas_task_toggle_enable, func.command, False),
+                            color="danger",
+                        )
+                    )
+                elif status == "disabled":
+                    btns.append(
+                        put_button(
+                            label=t("Gui.Button.Enable"),
+                            onclick=partial(self.alas_task_toggle_enable, func.command, True),
+                            color="primary",
+                        )
+                    )
+                btns.append(
+                    put_button(
+                        label=t("Gui.Button.Setting"),
+                        onclick=partial(self.alas_set_group, func.command),
+                        color="off",
+                    )
                 )
+                fav_label = "★" if is_favorite else "☆"
+                fav_color = "warning" if is_favorite else "off"
+                btns.append(
+                    put_button(
+                        label=fav_label,
+                        onclick=partial(self.alas_toggle_favorite, func.command),
+                        color=fav_color,
+                    )
+                )
+                put_row(btns, size=" ".join(["auto"] * len(btns))).style("margin: auto 0 auto auto; gap: 4px;")
 
         clear("running_tasks")
+        clear("favorite_tasks")
         clear("pending_tasks")
         clear("waiting_tasks")
+        clear("disabled_tasks")
+
         with use_scope("running_tasks"):
             if running:
                 for task in running:
-                    put_task(task)
+                    put_task(task, status="running", is_favorite=(task.command in fav_commands), prefix="run")
             else:
                 put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
+
+        with use_scope("favorite_tasks"):
+            if fav_commands:
+                for cmd in fav_commands:
+                    raw_data = self.alas_config.data.get(cmd, {})
+                    func = Function(raw_data)
+                    func.command = cmd
+                    if running and running[0].command == cmd:
+                        status = "running"
+                        func.next_run = running[0].next_run
+                    elif any(p.command == cmd for p in pending):
+                        status = "pending"
+                        p_task = next(p for p in pending if p.command == cmd)
+                        func.next_run = p_task.next_run
+                    elif any(w.command == cmd for w in waiting):
+                        status = "waiting"
+                        w_task = next(w for w in waiting if w.command == cmd)
+                        func.next_run = w_task.next_run
+                    else:
+                        status = "disabled"
+                    put_task(func, status=status, is_favorite=True, prefix="fav")
+            else:
+                put_text(t("Gui.Overview.NoFavorite")).style("--overview-notask-text--")
+
         with use_scope("pending_tasks"):
             if pending:
                 for task in pending:
-                    put_task(task)
+                    put_task(task, status="pending", is_favorite=(task.command in fav_commands), prefix="pen")
             else:
                 put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
+
         with use_scope("waiting_tasks"):
             if waiting:
                 for task in waiting:
-                    put_task(task)
+                    put_task(task, status="waiting", is_favorite=(task.command in fav_commands), prefix="wait")
+            else:
+                put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
+
+        with use_scope("disabled_tasks"):
+            if disabled:
+                for task in disabled:
+                    put_task(task, status="disabled", is_favorite=(task.command in fav_commands), prefix="dis")
             else:
                 put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
 

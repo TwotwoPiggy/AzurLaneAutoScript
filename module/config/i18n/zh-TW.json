@@ -3032,10 +3032,22 @@
     "Overview": {
       "Scheduler": "調度器",
       "Log": "日誌",
-      "Running": "執行中",
-      "Pending": "佇列中",
+      "Running": "運行中",
+      "Favorites": "已收藏",
+      "Pending": "隊列中",
       "Waiting": "等待中",
-      "NoTask": "無任務"
+      "Disabled": "已禁用",
+      "Enabled": "已啟用",
+      "RunNowSuccess": "已設為立即運行",
+      "NoTask": "無任務",
+      "NoFavorite": "暫無收藏任務，點擊右上角【添加收藏】快速加入"
+    },
+    "Button": {
+      "Setting": "設定",
+      "RunNow": "運行",
+      "Enable": "啟用",
+      "Disable": "關閉",
+      "AddFavorite": "➕ 添加收藏"
     },
     "AddAlas": {
       "PopupTitle": "添加新的設定",
