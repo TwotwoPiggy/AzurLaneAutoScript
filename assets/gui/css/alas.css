@@ -528,14 +528,3 @@ pre.rich-traceback-code {
     height: 1.5rem;
     border: .2em solid currentColor;
 }
-
-#pywebio-scope-updater_source p,
-#pywebio-scope-content > p,
-#pywebio-scope-updater_source [style*="text-align: center"],
-#pywebio-scope-updater_source [style*="text-align:center"] {
-    display: none !important;
-    height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-}

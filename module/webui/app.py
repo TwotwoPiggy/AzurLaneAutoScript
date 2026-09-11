@@ -789,39 +789,6 @@ class AlasGUI(Frame):
         if State.restart_event is None:
             put_warning(t("Gui.Update.DisabledWarn"))
 
-        # 隐藏并彻底移除更新器页面中所有冗余重复的免责退款声明
-        put_html("""
-        <style>
-            #pywebio-scope-updater_source p,
-            #pywebio-scope-content > p,
-            #pywebio-scope-updater_source [style*="text-align: center"],
-            #pywebio-scope-updater_source [style*="text-align:center"] {
-                display: none !important;
-                height: 0 !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                overflow: hidden !important;
-            }
-        </style>
-        <script>
-            (function() {
-                function wipeDisclaimers() {
-                    $('#pywebio-scope-updater_source, #pywebio-scope-content').find('*').filter(function() {
-                        var txt = $(this).text();
-                        return (txt.indexOf('paid for Alas') !== -1 || txt.indexOf('如果你在任何渠道付费购买') !== -1) && $(this).children('div, p').length === 0;
-                    }).each(function() {
-                        $(this).closest('p, div').remove();
-                    });
-                }
-                wipeDisclaimers();
-                if (!window._alas_disclaimer_observer) {
-                    window._alas_disclaimer_observer = new MutationObserver(wipeDisclaimers);
-                    window._alas_disclaimer_observer.observe(document.body, {childList: true, subtree: true});
-                }
-            })();
-        </script>
-        """)
-
         put_scope("updater_source")
         put_row(
             content=[put_scope("updater_loading"), None, put_scope("updater_state")],
@@ -960,8 +927,14 @@ class AlasGUI(Frame):
                 card_style_official = f"border: 1px solid {'#1976d2' if is_official else 'rgba(25,118,210,0.25)'}; border-radius: 8px; padding: 12px 14px; background: {'rgba(25,118,210,0.05)' if is_official else 'rgba(25,118,210,0.02)'}; height: fit-content;"
                 card_style_custom = f"border: 1px solid {'#2e7d32' if is_custom else 'rgba(46,125,50,0.25)'}; border-radius: 8px; padding: 12px 14px; background: {'rgba(46,125,50,0.05)' if is_custom else 'rgba(46,125,50,0.02)'}; height: fit-content;"
 
-                # 官方卡片
-                official_card = put_column([
+                put_row([
+                    put_scope("card_official").style(card_style_official),
+                    None,
+                    put_scope("card_custom").style(card_style_custom),
+                ], size="1fr 12px 1fr").style("align-items: start;")
+
+                # 填充官方卡片内容
+                with use_scope("card_official", clear=True):
                     put_html(f"""
                     <div style="font-size: 1.05em; font-weight: bold; color: #1976d2; display: flex; align-items: center; margin-bottom: 6px;">
                         🏛️ 官方更新 (Official) {official_badge}
@@ -975,16 +948,15 @@ class AlasGUI(Frame):
                     <div style="color: #888; font-size: 0.78em; margin-bottom: 8px;">
                         用于直接同步官方发布的最新主线改动。
                     </div>
-                    """),
+                    """)
                     put_row([
                         put_button("🏛️ 官方更新", onclick=on_click_official_update, color="primary"),
                         None,
                         put_button("🔍 检查官方更新", onclick=on_click_official_check, color="info", outline=True),
                     ], size="auto 8px auto")
-                ]).style(card_style_official)
 
-                # 私有卡片
-                custom_card = put_column([
+                # 填充私有卡片内容
+                with use_scope("card_custom", clear=True):
                     put_html(f"""
                     <div style="font-size: 1.05em; font-weight: bold; color: #2e7d32; display: flex; align-items: center; margin-bottom: 6px;">
                         🌟 私有更新 (Custom) {custom_badge}
@@ -995,12 +967,12 @@ class AlasGUI(Frame):
                     <div style="color: #888; font-size: 0.78em; margin-bottom: 8px;">
                         支持从个人 GitHub 仓库拉取并更新指定分支。
                     </div>
-                    """),
+                    """)
                     put_row([
                         put_input('custom_branch_input', value=custom_branch, placeholder='更新分支: custom / master').style("margin-bottom: 0;"),
                         None,
                         put_button("⚙️ 仓库配置", onclick=show_custom_repo_modal, color="secondary", outline=True).style("white-space: nowrap;"),
-                    ], size="1fr 8px auto").style("align-items: center; margin-bottom: 6px;"),
+                    ], size="1fr 8px auto").style("align-items: center; margin-bottom: 6px;")
 
                     put_row([
                         put_text("快捷分支:").style("font-size: 0.82em; color: #666; line-height: 24px; margin: 0; white-space: nowrap;"),
@@ -1008,30 +980,15 @@ class AlasGUI(Frame):
                         put_button("custom", onclick=lambda: select_fast_branch("custom"), color="success", outline=True).style("padding: 2px 8px; font-size: 0.8em;"),
                         None,
                         put_button("master", onclick=lambda: select_fast_branch("master"), color="secondary", outline=True).style("padding: 2px 8px; font-size: 0.8em;"),
-                    ], size="auto 6px auto 6px auto").style("align-items: center; margin-bottom: 8px;"),
+                    ], size="auto 6px auto 6px auto").style("align-items: center; margin-bottom: 8px;")
 
                     put_row([
                         put_button("🚀 私有更新", onclick=on_click_custom_update, color="success"),
                         None,
                         put_button("🔍 检查私有更新", onclick=on_click_custom_check, color="info", outline=True),
                     ], size="auto 8px auto")
-                ]).style(card_style_custom)
-
-                put_row([
-                    official_card,
-                    None,
-                    custom_card,
-                ], size="1fr 12px 1fr").style("align-items: start;")
 
                 put_html("<hr style='margin: 12px 0; border: none; border-top: 1px solid rgba(125,125,125,0.15);'/>")
-
-                # 执行 JS 深度移除更新器区域内所有残留的免责退款声明 DOM 节点
-                run_js("""
-                    $('#pywebio-scope-updater_source, #pywebio-scope-content').find('*').filter(function() {
-                        var text = $(this).text();
-                        return (text.indexOf('paid for Alas') !== -1 || text.indexOf('如果你在任何渠道付费购买') !== -1) && $(this).children('div, p').length === 0;
-                    }).closest('p, div').remove();
-                """)
 
         render_cards()
 
