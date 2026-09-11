@@ -92,7 +92,7 @@ class GitManager(DeployConfig):
         Progress.GitSetRepo()
 
         logger.hr('Fetch Repository Branch', 1)
-        refspec = f'{branch}:refs/remotes/{source}/{branch}'
+        refspec = f'+{branch}:refs/remotes/{source}/{branch}'
         if os.path.exists('./.git/shallow'):
             logger.info('Shallow repository detected, fetching with --depth=1')
             if not self.execute(f'"{self.git}" fetch --depth=1 {source} {refspec}', allow_failure=True):
