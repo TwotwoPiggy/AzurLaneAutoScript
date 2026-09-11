@@ -8,6 +8,12 @@ Deploy:
     # [Developer] Use 'dev', 'app', etc, to try new features
     # [Other] Use 'master', the stable branch
     Branch: master
+    # Update source: 'official' or 'custom'
+    UpdateSource: custom
+    OfficialRepository: https://github.com/LmeSzinc/AzurLaneAutoScript
+    OfficialBranch: master
+    CustomRepository: null
+    CustomBranch: master
     # Filepath of git executable `git.exe`
     # [Easy installer] Use './toolkit/Git/mingw64/bin/git.exe'
     # [Other] Use you own git

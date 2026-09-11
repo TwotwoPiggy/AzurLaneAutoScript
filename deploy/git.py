@@ -48,7 +48,7 @@ class GitManager(DeployConfig):
         logger.hr('Set Git Repository', 1)
         if not self.execute(f'"{self.git}" remote set-url {source} {repo}', allow_failure=True):
             self.execute(f'"{self.git}" remote add {source} {repo}')
-        self.execute(f'"{self.git}" config --local remote.{source}.fetch "+refs/heads/*:refs/remotes/{source}/*"', allow_failure=True)
+        self.execute(f'"{self.git}" config --local remote.{source}.fetch +refs/heads/*:refs/remotes/{source}/*', allow_failure=True)
         self.execute(f'"{self.git}" config --local gc.auto 0', allow_failure=True)
 
         logger.hr('Fetch Repository Branch', 1)
