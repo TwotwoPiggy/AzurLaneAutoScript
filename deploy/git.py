@@ -50,7 +50,12 @@ class GitManager(DeployConfig):
             self.execute(f'"{self.git}" remote add {source} {repo}')
 
         logger.hr('Fetch Repository Branch', 1)
-        self.execute(f'"{self.git}" fetch {source} {branch}')
+        if os.path.exists('./.git/shallow'):
+            logger.info('Shallow repository detected, fetching with --depth=1')
+            if not self.execute(f'"{self.git}" fetch --depth=1 {source} {branch}', allow_failure=True):
+                self.execute(f'"{self.git}" fetch {source} {branch}')
+        else:
+            self.execute(f'"{self.git}" fetch {source} {branch}')
 
         logger.hr('Pull Repository Branch', 1)
         # Remove git lock
