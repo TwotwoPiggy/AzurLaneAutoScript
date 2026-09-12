@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import threading
 import time
 from datetime import datetime, timedelta
@@ -21,6 +22,7 @@ class AzurLaneAutoScript:
     def __init__(self, config_name='alas'):
         logger.hr('Start', level=0)
         self.config_name = config_name
+        self.process_start_time = time.time()
         # Skip first restart
         self.is_first_task = True
         # Failure count of tasks
@@ -130,7 +132,55 @@ class AzurLaneAutoScript:
                 title=f"Alas <{self.config_name}> crashed",
                 content=f"<{self.config_name}> Exception occured",
             )
-            exit(1)
+    def check_task_boundary_recycle(self) -> bool:
+        """
+        Check if worker process should be safely recycled at task boundary.
+        Two-stage memory check (D-09):
+          - If RSS > 600MB: trim memory. If still > 500MB, recycle.
+        Aging check (D-12):
+          - If running >= 48 hours and current time is 04:00~05:00, recycle.
+
+        Returns:
+            bool: True if safe restart was triggered and exiting.
+        """
+        from module.base.memory_utils import get_process_rss, trim_memory
+        from module.base.resource import release_resources
+
+        rss = get_process_rss()
+        recycle_needed = False
+
+        # Stage 1 & 2: Two-stage memory leak check (D-09)
+        if rss > 600 * 1024 * 1024:
+            logger.warning(f'High memory usage detected ({rss / 1024 / 1024:.1f}MB > 600MB). Trimming memory...')
+            release_resources()
+            trim_memory()
+            rss_after = get_process_rss()
+            if rss_after > 500 * 1024 * 1024:
+                logger.warning(
+                    f'Memory remains high after trimming ({rss_after / 1024 / 1024:.1f}MB > 500MB). '
+                    'Safe recycling triggered.'
+                )
+                recycle_needed = True
+            else:
+                logger.info(f'Memory successfully trimmed to {rss_after / 1024 / 1024:.1f}MB')
+
+        # Check 2: 48h aging check during night window (D-12)
+        if not recycle_needed:
+            elapsed = time.time() - self.process_start_time
+            if elapsed >= 48 * 3600 and datetime.now().hour == 4:
+                logger.info(
+                    f'Process running for {elapsed / 3600:.1f}h >= 48h during night maintenance window (04:00~05:00). '
+                    'Safe recycling triggered.'
+                )
+                recycle_needed = True
+
+        if recycle_needed:
+            logger.info(f'[{self.config_name}] exited. Reason: Safe restart\n')
+            # Prevent IPC log queue truncation before exit (WARNING-1)
+            time.sleep(0.1)
+            sys.exit(0)
+
+        return False
 
     def save_error_log(self):
         """
@@ -592,6 +642,7 @@ class AzurLaneAutoScript:
             success = self.run(inflection.underscore(task))
             logger.info(f'Scheduler: End task `{task}`')
             self.is_first_task = False
+            self.check_task_boundary_recycle()
 
             # Check failures
             failed = deep_get(self.failure_record, keys=task, default=0)

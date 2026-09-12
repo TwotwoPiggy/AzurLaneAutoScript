@@ -2,6 +2,7 @@ import argparse
 import os
 import queue
 import threading
+import time
 from multiprocessing import Process
 from typing import Dict, List, Union
 
@@ -34,8 +35,16 @@ class ProcessManager:
         self._process: Process = None
         self._process_locks: Dict[str, threading.Lock] = {}
         self.thd_log_queue_handler: threading.Thread = None
+        self.ev: threading.Event = None
+        self.in_active_task: bool = False
+        self.thd_watchdog: threading.Thread = None
+        self._watchdog_stop_event = threading.Event()
+        self.last_activity_time = time.time()
+        self.last_main_process_trim_time = time.time()
 
     def start(self, func, ev: threading.Event = None) -> None:
+        if ev is not None:
+            self.ev = ev
         if not self.alive:
             if func is None:
                 func = get_config_mod(self.config_name)
@@ -45,11 +54,14 @@ class ProcessManager:
                     self.config_name,
                     func,
                     self._renderable_queue,
-                    ev,
+                    self.ev,
                 ),
             )
             self._process.start()
+            self.last_activity_time = time.time()
+            self.in_active_task = False
             self.start_log_queue_handler()
+            self.start_watchdog()
 
     def start_log_queue_handler(self):
         if (
@@ -62,6 +74,19 @@ class ProcessManager:
         )
         self.thd_log_queue_handler.start()
 
+    def start_watchdog(self):
+        if (
+            self.thd_watchdog is not None
+            and self.thd_watchdog.is_alive()
+        ):
+            return
+        self._watchdog_stop_event.clear()
+        self.thd_watchdog = threading.Thread(
+            target=self._thread_watchdog,
+            daemon=True
+        )
+        self.thd_watchdog.start()
+
     def stop(self) -> None:
         try:
             lock = self._process_locks[self.config_name]
@@ -70,6 +95,12 @@ class ProcessManager:
             self._process_locks[self.config_name] = lock
 
         with lock:
+            self._watchdog_stop_event.set()
+            if self.thd_watchdog is not None:
+                self.thd_watchdog.join(timeout=1)
+                if self.thd_watchdog.is_alive():
+                    logger.warning("Watchdog thread does not stop within 1 seconds")
+
             if self.alive:
                 self._process.kill()
                 self.renderables.append(
@@ -83,16 +114,109 @@ class ProcessManager:
                     )
         logger.info(f"[{self.config_name}] exited")
 
+    def _renderable_to_str(self, renderable) -> str:
+        if isinstance(renderable, str):
+            return renderable
+        if hasattr(renderable, 'plain'):
+            return renderable.plain
+        try:
+            console = Console(no_color=True)
+            with console.capture() as capture:
+                console.print(renderable)
+            return capture.get().strip()
+        except Exception:
+            return str(renderable)
+
+    def _update_task_state_from_log(self, log) -> None:
+        s = self._renderable_to_str(log)
+        if "Scheduler: Start task " in s:
+            self.in_active_task = True
+        elif (
+            "Scheduler: End task " in s
+            or "Wait until " in s
+            or "Server checker will retry" in s
+        ):
+            self.in_active_task = False
+
+    def _drain_renderable_queue(self) -> None:
+        """
+        Drain all remaining logs from the IPC queue into renderables.
+        Prevents race condition and message loss on process exit.
+        """
+        while True:
+            try:
+                log = self._renderable_queue.get_nowait()
+                self.last_activity_time = time.time()
+                self._update_task_state_from_log(log)
+                self.renderables.append(log)
+                if len(self.renderables) > self.renderables_max_length:
+                    self.renderables = self.renderables[self.renderables_reduce_length :]
+            except (queue.Empty, Exception):
+                break
+
     def _thread_log_queue_handler(self) -> None:
         while self.alive:
             try:
                 log = self._renderable_queue.get(timeout=1)
             except queue.Empty:
                 continue
+            self.last_activity_time = time.time()
+            self._update_task_state_from_log(log)
             self.renderables.append(log)
             if len(self.renderables) > self.renderables_max_length:
                 self.renderables = self.renderables[self.renderables_reduce_length :]
+        self._drain_renderable_queue()
         logger.info("End of log queue handler loop")
+
+    def _thread_watchdog(self) -> None:
+        logger.info(f"[{self.config_name}] Subprocess watchdog thread started")
+        while not self._watchdog_stop_event.wait(5):
+            now = time.time()
+
+            # 1. Main process low-frequency working set trimming (BLOCKER-2, D-07)
+            if now - self.last_main_process_trim_time >= 1800:
+                if not self.in_active_task:
+                    try:
+                        from module.base.memory_utils import empty_working_set
+                        empty_working_set()
+                    except Exception as e:
+                        logger.debug(f"Main process working set trimming failed: {e}")
+                    self.last_main_process_trim_time = now
+
+            # 2. Watchdog hang detection in active tasks (BLOCKER-1, D-11)
+            if self.alive:
+                if self.in_active_task:
+                    if now - self.last_activity_time > 180:
+                        logger.warning(
+                            f"[{self.config_name}] Subprocess unresponsive for >180s in active task, forcing watchdog kill"
+                        )
+                        try:
+                            self._process.kill()
+                        except Exception as e:
+                            logger.error(f"Failed to kill unresponsive subprocess: {e}")
+                        self.renderables.append(
+                            f"[{self.config_name}] exited. Reason: Watchdog kill\n"
+                        )
+                        self._drain_renderable_queue()
+                        time.sleep(0.5)
+                        if not self._watchdog_stop_event.is_set():
+                            logger.info(f"[{self.config_name}] Restarting after watchdog kill")
+                            self.start(func=get_config_mod(self.config_name), ev=self.ev)
+                else:
+                    # In wait_until or maintenance wait, hang detection is suspended
+                    self.last_activity_time = now
+            else:
+                # 3. Safe restart recycling detection (D-10, WARNING-1)
+                if not self._watchdog_stop_event.is_set():
+                    self._drain_renderable_queue()
+                    if len(self.renderables) > 0:
+                        last_log = self._renderable_to_str(self.renderables[-1]).strip()
+                        if "Reason: Safe restart" in last_log:
+                            logger.info(f"[{self.config_name}] Safe restart requested, recycling worker process")
+                            time.sleep(0.5)
+                            if not self._watchdog_stop_event.is_set():
+                                self.start(func=get_config_mod(self.config_name), ev=self.ev)
+        logger.info(f"[{self.config_name}] Subprocess watchdog thread stopped")
 
     @property
     def alive(self) -> bool:
@@ -108,16 +232,15 @@ class ProcessManager:
         elif len(self.renderables) == 0:
             return 2
         else:
-            console = Console(no_color=True)
-            with console.capture() as capture:
-                console.print(self.renderables[-1])
-            s = capture.get().strip()
+            s = self._renderable_to_str(self.renderables[-1]).strip()
             if s.endswith("Reason: Manual stop"):
                 return 2
             elif s.endswith("Reason: Finish"):
                 return 2
             elif s.endswith("Reason: Update"):
                 return 4
+            elif "Reason: Safe restart" in s:
+                return 1
             else:
                 return 3
 
