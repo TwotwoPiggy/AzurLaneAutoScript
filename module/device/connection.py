@@ -131,6 +131,7 @@ class Connection(ConnectionAttr):
         logger.attr('Server', self.config.SERVER)
 
         self.check_mumu_app_keep_alive()
+        self.check_mumu_nemu_ipc_health()
 
     @Config.when(DEVICE_OVER_HTTP=False)
     def adb_command(self, cmd, timeout=10):
@@ -387,6 +388,37 @@ class Connection(ConnectionAttr):
         else:
             logger.warning(f'Invalid nemud.app_keep_alive value: {res}')
             return False
+
+    def check_mumu_nemu_ipc_health(self):
+        """
+        Check if MuMu is running with optimal NemuIPC configuration on Windows.
+        Non-blocking warning with documentation link.
+        """
+        if not IS_WINDOWS:
+            return
+        if not self.is_mumu_family:
+            return
+
+        nemu_func = getattr(self, 'nemu_ipc_available', None)
+        if callable(nemu_func):
+            try:
+                if nemu_func():
+                    return
+            except Exception:
+                pass
+        elif hasattr(self, 'nemu_ipc'):
+            try:
+                if self.nemu_ipc is not None:
+                    return
+            except Exception:
+                pass
+
+        logger.warning(
+            '[Notice] 检测到当前运行于 MuMu 模拟器，但高效的 NemuIPC 共享内存通道未生效。\n'
+            '当前自动化可能正回退至高 CPU 占用的 ADB 截图管道。\n'
+            '为显著降低双核 CPU 负载与发热，请参考弱机调优指南：doc/low_spec_tuning_guide.md '
+            '（请确认已关闭 MuMu 设置中的“后台挂机保活”并将 MuMu 分配至独显）。'
+        )
 
     @cached_property
     def is_mumu_over_version_400(self) -> bool:
