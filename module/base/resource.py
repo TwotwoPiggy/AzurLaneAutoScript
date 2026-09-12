@@ -140,5 +140,12 @@ def release_resources(next_task=''):
     for attr in attr_list:
         del_cached_property(ASSETS, attr)
 
-    # Useless in most cases, but just call it
-    # gc.collect()
+    # Memory cleanup trilogy: cache release -> gc.collect() -> empty_working_set()
+    from module.base.memory_utils import trim_memory
+    from module.logger import logger
+    stats = trim_memory()
+    if stats['freed'] > 5 * 1024 * 1024:
+        before_mb = stats['rss_before'] / (1024 * 1024)
+        after_mb = stats['rss_after'] / (1024 * 1024)
+        freed_mb = stats['freed'] / (1024 * 1024)
+        logger.info(f'Memory trimmed: {before_mb:.1f}MB -> {after_mb:.1f}MB (freed {freed_mb:.1f}MB)')
