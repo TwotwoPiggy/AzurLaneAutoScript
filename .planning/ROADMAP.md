@@ -10,7 +10,7 @@
 - [ ] **Phase 2: WebUI 前端与日志流控** - 可见性门禁，150条 DOM 滑动截断与心跳防假死
 - [ ] **Phase 3: Python 自动化核心能效与通讯调优** - 状态感知自适应休眠与 NemuIPC 零 CPU 截屏守护
 - [ ] **Phase 4: 7×24 小时挂机内存守护与防泄漏** - JPEG 内存流压缩截图队列，空闲边界 EmptyWorkingSet 物理工作集修剪与看门狗
-- [ ] **Phase 5: 弱机与模拟器协同最佳配置** - 双显卡硬分流与 MuMu 12 性能及无缝连接调优指南
+- [x] **Phase 5: 弱机与模拟器协同最佳配置** - 双显卡硬分流与 MuMu 12 性能及无缝连接调优指南 (completed 2026-09-12)
 
 ## Phase Details
 
@@ -92,10 +92,10 @@
   2. 提供 MuMu 12 性能（核数、帧率、关闭后台保活）调优参数指导
   3. 提供低配平台虚拟内存与 TDR 防护调优建议
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans complete
 
 - [x] 05-01-PLAN.md
-- [ ] 05-02-PLAN.md
+- [x] 05-02-PLAN.md
 
 ## Progress
 
@@ -108,4 +108,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. WebUI 前端与日志流控 | 0/0 | Not started | - |
 | 3. Python 自动化核心能效与通讯调优 | 0/0 | Not started | - |
 | 4. 7×24 小时挂机内存守护与防泄漏 | 3/3 | Completed | 2026-09-12 |
-| 5. 弱机与模拟器协同最佳配置 | 1/2 | In Progress|  |
+| 5. 弱机与模拟器协同最佳配置 | 2/2 | Complete   | 2026-09-12 |
