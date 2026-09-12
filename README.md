@@ -49,6 +49,8 @@ GUI development, thanks **[@18870](https://github.com/18870)** , say HURRAY.
 
 [设备支持文档](https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/Emulator_cn)，包含模拟器运行、云手机运行以及解锁各种骚方式运行。
 
+[弱机与模拟器 7x24h 协同优化指南](doc/low_spec_tuning_guide.md)，包含双显卡硬分流、MuMu 12 性能参数与 NemuIPC、虚拟内存 PageFile 规整与 TDR 防蓝屏/黑屏配置。
+
 
 
 ## 正确地使用调度器
