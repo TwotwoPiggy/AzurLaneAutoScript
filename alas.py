@@ -475,6 +475,10 @@ class AzurLaneAutoScript:
         """
         future = future + timedelta(seconds=1)
         self.config.start_watching()
+
+        is_deep_offline = False
+        preheated = False
+
         while 1:
             if datetime.now() > future:
                 return True
@@ -484,7 +488,42 @@ class AzurLaneAutoScript:
                     logger.info(f"[{self.config_name}] exited. Reason: Update")
                     exit(0)
 
-            time.sleep(5)
+            remaining = (future - datetime.now()).total_seconds()
+
+            # Deep offline mode (> 60s wait) - release device handles
+            if remaining > 60 and not is_deep_offline:
+                logger.info(f'[Scheduler] Remaining {remaining:.1f}s > 60s, enter deep offline mode & release handles.')
+                if hasattr(self, 'device') and self.device is not None:
+                    self.device.release_during_wait()
+                is_deep_offline = True
+
+            # T-10s pre-warming reconnection
+            if is_deep_offline and not preheated and remaining <= 10.0:
+                logger.info('[Scheduler] T-10s reached: warming up device connection & NemuIPC...')
+                try:
+                    if hasattr(self, 'device') and self.device is not None:
+                        self.device.screenshot()
+                except Exception as e:
+                    logger.warning(f'[Scheduler] Device pre-warming screenshot failed: {e}')
+                preheated = True
+
+            # Calculate dynamic step duration
+            if is_deep_offline:
+                if not preheated:
+                    step = min(15.0, max(1.0, remaining - 10.0))
+                else:
+                    step = min(1.0, max(0.1, remaining))
+            else:
+                step = min(5.0, max(0.5, remaining))
+
+            # Event wait with timeout for instant stop response
+            if self.stop_event is not None:
+                if self.stop_event.wait(timeout=step):
+                    logger.info("Update event detected")
+                    logger.info(f"[{self.config_name}] exited. Reason: Update")
+                    exit(0)
+            else:
+                time.sleep(step)
 
             if self.config.should_reload():
                 return False

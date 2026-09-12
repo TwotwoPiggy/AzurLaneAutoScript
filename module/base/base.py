@@ -54,7 +54,25 @@ class ModuleBase:
             self.device = device
 
         self.interval_timer = {}
+        self._adaptive_interval = 0.15
+        self._loop_idle_count = 0
+        self._adaptive_interval_min = 0.15
+        self._adaptive_interval_max = 1.1
+        if hasattr(self, 'device') and self.device is not None:
+            self.device.adaptive_wake_up_callback = self.adaptive_wake_up
         self.early_ocr_import()
+
+    def adaptive_wake_up(self):
+        """
+        Instantaneously reset adaptive sleep interval to minimum (0ms delay)
+        and clear underlying screenshot timer wait.
+        """
+        self._loop_idle_count = 0
+        self._adaptive_interval = self._adaptive_interval_min
+        if hasattr(self, 'device') and self.device is not None:
+            if hasattr(self.device, '_screenshot_interval'):
+                self.device._screenshot_interval.limit = self._adaptive_interval_min
+                self.device._screenshot_interval.clear()
 
     @cached_property
     def stat(self) -> AzurStats:
@@ -158,10 +176,37 @@ class ModuleBase:
             else:
                 timeout = Timer.from_seconds(timeout).start()
 
+        # Check short timeout protection (<= 5.0s)
+        is_short_timeout = False
+        if timeout is not None:
+            if isinstance(timeout, Timer):
+                is_short_timeout = timeout.limit <= 5.0
+            elif isinstance(timeout, (int, float)):
+                is_short_timeout = timeout <= 5.0
+
+        self.adaptive_wake_up()
+
         while 1:
             if timeout is not None:
                 if timeout.reached():
                     return
+
+            # Manage 3-tier adaptive sleep stepping
+            if is_short_timeout:
+                self._adaptive_interval = self._adaptive_interval_min
+            else:
+                if self._loop_idle_count == 0:
+                    self._adaptive_interval = self._adaptive_interval_min
+                elif self._loop_idle_count in (1, 2):
+                    self._adaptive_interval = 0.4
+                else:
+                    self._adaptive_interval = self._adaptive_interval_max
+
+            if hasattr(self, 'device') and self.device is not None:
+                if hasattr(self.device, '_screenshot_interval'):
+                    self.device._screenshot_interval.limit = self._adaptive_interval
+
+            self._loop_idle_count += 1
 
             if skip_first:
                 skip_first = False
@@ -256,8 +301,10 @@ class ModuleBase:
         else:
             appear = button.appear_on(self.device.image, threshold=threshold)
 
-        if appear and interval:
-            self.interval_timer[button.name].reset()
+        if appear:
+            self.adaptive_wake_up()
+            if interval:
+                self.interval_timer[button.name].reset()
 
         return appear
 
@@ -288,8 +335,10 @@ class ModuleBase:
         appear = button.match_template_color(
             self.device.image, offset=offset, similarity=similarity, threshold=threshold)
 
-        if appear and interval:
-            self.interval_timer[button.name].reset()
+        if appear:
+            self.adaptive_wake_up()
+            if interval:
+                self.interval_timer[button.name].reset()
 
         return appear
 

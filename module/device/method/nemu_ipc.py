@@ -595,11 +595,29 @@ class NemuIpc(Platform):
         logger.info('nemu_ipc released')
 
     def screenshot_nemu_ipc(self):
-        image = self.nemu_ipc.screenshot()
+        delays = [0.5, 1.0, 2.0]
+        for attempt, delay in enumerate(delays):
+            try:
+                image = self.nemu_ipc.screenshot()
+                if image is None:
+                    raise NemuIpcError('Captured None image from NemuIPC')
+                if image.size == 0 or (image[:10, :10, :3].sum() == 0 and image[350:370, 630:650, :3].sum() == 0 and image.mean() < 1.0):
+                    raise NemuIpcError('Black or empty screen captured via NemuIPC')
 
-        image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
-        cv2.flip(image, 0, dst=image)
-        return image
+                image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+                cv2.flip(image, 0, dst=image)
+                return image
+            except Exception as e:
+                logger.warning(f'NemuIPC screenshot failed (attempt {attempt + 1}/{len(delays)}): {e}')
+                self.nemu_ipc_release()
+                time.sleep(delay)
+                try:
+                    _ = self.nemu_ipc
+                except Exception as rec_err:
+                    logger.warning(f'NemuIPC in-place reconnect attempt failed: {rec_err}')
+
+        logger.critical('NemuIPC in-place retry exhausted! Blocked ADB fallback to prevent CPU thermal throttling.')
+        raise RequestHumanTakeover('NemuIPC connection broken, please check emulator status.')
 
     def click_nemu_ipc(self, x, y):
         down = ensure_time((0.010, 0.020))

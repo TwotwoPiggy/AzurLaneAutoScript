@@ -92,6 +92,7 @@ class Device(Screenshot, Control, AppControl):
         if IS_WINDOWS and self.config.EmulatorInfo_Emulator == 'auto':
             _ = self.emulator_instance
 
+        self.adaptive_wake_up_callback = None
         self.screenshot_interval_set()
         self.method_check()
 
@@ -128,13 +129,11 @@ class Device(Screenshot, Control, AppControl):
         """
         Check combinations of screenshot method and control methods
         """
-        # nemu_ipc should be together
-        # if self.config.Emulator_ScreenshotMethod == 'nemu_ipc' and self.config.Emulator_ControlMethod != 'nemu_ipc':
-        #     logger.warning('When using nemu_ipc, both screenshot and control should use nemu_ipc')
-        #     self.config.Emulator_ControlMethod = 'nemu_ipc'
-        # if self.config.Emulator_ScreenshotMethod != 'nemu_ipc' and self.config.Emulator_ControlMethod == 'nemu_ipc':
-        #     logger.warning('When not using nemu_ipc, both screenshot and control should not use nemu_ipc')
-        #     self.config.Emulator_ControlMethod = 'minitouch'
+        # MuMu 12 environment: strictly lock screenshot method to nemu_ipc on Windows
+        if self.is_emulator and self.is_mumu_family and IS_WINDOWS:
+            if self.config.Emulator_ScreenshotMethod != 'nemu_ipc':
+                logger.info('MuMu Player detected, locked Emulator_ScreenshotMethod to nemu_ipc')
+                self.config.Emulator_ScreenshotMethod = 'nemu_ipc'
         # Allow Hermit on VMOS only
         if self.config.Emulator_ControlMethod == 'Hermit' and not self.is_vmos:
             logger.warning('ControlMethod Hermit is allowed on VMOS only')
@@ -197,6 +196,9 @@ class Device(Screenshot, Control, AppControl):
             super().screenshot()
         except RequestHumanTakeover:
             if not self.ascreencap_available:
+                if self.is_mumu_family or self.config.Emulator_ScreenshotMethod == 'nemu_ipc':
+                    logger.error('NemuIPC screenshot failed on MuMu Player, forbid fallback to ADB')
+                    raise
                 logger.error('aScreenCap unavailable on current device, fallback to auto')
                 self.run_simple_screenshot_benchmark()
                 super().screenshot()
@@ -267,6 +269,10 @@ class Device(Screenshot, Control, AppControl):
         self.stuck_record_clear()
         self.click_record_add(button)
         self.click_record_check()
+        if hasattr(self, '_screenshot_interval'):
+            self._screenshot_interval.clear()
+        if hasattr(self, 'adaptive_wake_up_callback') and callable(self.adaptive_wake_up_callback):
+            self.adaptive_wake_up_callback()
 
     def click_record_add(self, button):
         self.click_record.append(str(button))
