@@ -71,15 +71,15 @@
 **Plans**:
 **Wave 1**
 
-  - [ ] 04-01-PLAN.md — 错误截图队列 JPEG 内存流高倍压缩与回溯容量控制 (MEM-01)
+  - [x] 04-01-PLAN.md — 错误截图队列 JPEG 内存流高倍压缩与回溯容量控制 (MEM-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-  - [ ] 04-02-PLAN.md — Win32 物理工作集修剪工具封装与任务边界 GC 闭环 (MEM-02, MEM-03)
+  - [x] 04-02-PLAN.md — Win32 物理工作集修剪工具封装与任务边界 GC 闭环 (MEM-02, MEM-03)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-  - [ ] 04-03-PLAN.md — 多进程调度器子进程 RSS 巡检看门狗与安全自愈 (MEM-04)
+  - [x] 04-03-PLAN.md — 多进程调度器子进程 RSS 巡检看门狗与安全自愈 (MEM-04)
 
 ### Phase 5: 弱机与模拟器协同最佳配置
 
@@ -104,5 +104,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Electron 桌面端轻量化与 GPU 保护 | 0/0 | Not started | - |
 | 2. WebUI 前端与日志流控 | 0/0 | Not started | - |
 | 3. Python 自动化核心能效与通讯调优 | 0/0 | Not started | - |
-| 4. 7×24 小时挂机内存守护与防泄漏 | 0/3 | In progress | - |
+| 4. 7×24 小时挂机内存守护与防泄漏 | 3/3 | Completed | 2026-09-12 |
 | 5. 弱机与模拟器协同最佳配置 | 0/0 | Not started | - |
