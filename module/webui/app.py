@@ -583,7 +583,7 @@ class AlasGUI(Frame):
                                         label=t("Gui.Button.AddFavorite"),
                                         onclick=self.alas_popup_add_favorite,
                                         color="off",
-                                    ).style("margin: 0 0 0.4rem auto; padding: .2rem .6rem; font-size: .82rem; border-radius: 4px;"),
+                                    ).style("margin: 0 0 0.4rem auto; padding: .22rem .65rem; font-size: .82rem; border-radius: 6px;").style("--btn-add-favorite--"),
                                 ],
                                 size="1fr",
                             ).style("align-items: center;"),
@@ -842,14 +842,14 @@ class AlasGUI(Frame):
                             label=t("Gui.Button.RunNow"),
                             onclick=partial(self.alas_task_run_now, func.command),
                             color="success",
-                        ).style("background-color: #2ea043; border-color: #2ea043;")
+                        )
                     )
                     btns.append(
                         put_button(
                             label=t("Gui.Button.Disable"),
                             onclick=partial(self.alas_task_toggle_enable, func.command, False),
                             color="danger",
-                        ).style("background-color: #da3633; border-color: #da3633;")
+                        )
                     )
                 elif status == "disabled":
                     btns.append(
@@ -857,7 +857,7 @@ class AlasGUI(Frame):
                             label=t("Gui.Button.Enable"),
                             onclick=partial(self.alas_task_toggle_enable, func.command, True),
                             color="primary",
-                        ).style("background-color: #1f6feb; border-color: #1f6feb;")
+                        )
                     )
                 btns.append(
                     put_button(
@@ -873,9 +873,9 @@ class AlasGUI(Frame):
                         label=fav_label,
                         onclick=partial(self.alas_toggle_favorite, func.command),
                         color=fav_color,
-                    ).style("font-size: 0.95rem; line-height: 1;")
+                    ).style("--btn-task-fav--")
                 )
-                put_row(btns, size=" ".join(["auto"] * len(btns))).style("margin: auto 0 auto auto; gap: 4px; align-items: center;")
+                put_row(btns, size=" ".join(["auto"] * len(btns))).style("margin: auto 0 auto auto; gap: 6px; align-items: center;")
 
         clear("running_tasks")
         clear("favorite_tasks")
