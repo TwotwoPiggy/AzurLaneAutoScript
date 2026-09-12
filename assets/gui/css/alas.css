@@ -447,6 +447,7 @@ pre.rich-traceback-code {
     font-size: 0.85rem;
     font-family: Menlo, consolas, DejaVu Sans Mono, Courier New, monospace;
     white-space: pre;
+    overflow-anchor: none;
 }
 
 #pywebio-scope-running,

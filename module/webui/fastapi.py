@@ -130,4 +130,6 @@ def start_server(
     if remote_access:
         start_remote_access_service(local_port=port)
 
+    uvicorn_settings.setdefault("ws_ping_interval", 30.0)
+    uvicorn_settings.setdefault("ws_ping_timeout", 30.0)
     uvicorn.run(app, host=host, port=port, **uvicorn_settings)

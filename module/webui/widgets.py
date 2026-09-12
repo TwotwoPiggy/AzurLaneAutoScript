@@ -1,4 +1,5 @@
 import copy
+import io
 import json
 import random
 import string
@@ -78,6 +79,7 @@ class RichLog:
         self.scope = scope
         self.font_width = font_width
         self.console = HTMLConsole(
+            file=io.StringIO(),
             force_terminal=False,
             force_interactive=False,
             width=80,
@@ -93,15 +95,15 @@ class RichLog:
         # self._callback_thread = None
         # self._width = 80
         self.keep_bottom = True
+        self.paused = False
+        self.need_snapshot = False
         if State.theme == "dark":
             self.terminal_theme = DARK_TERMINAL_THEME
         else:
             self.terminal_theme = LIGHT_TERMINAL_THEME
 
     def render(self, renderable: ConsoleRenderable) -> str:
-        with self.console.capture():
-            self.console.print(renderable)
-
+        self.console.print(renderable)
         html = self.console.export_html(
             theme=self.terminal_theme,
             clear=True,
@@ -114,17 +116,33 @@ class RichLog:
     def extend(self, text):
         if text:
             run_js(
-                """$("#pywebio-scope-{scope}>div").append(text);
-            """.format(
-                    scope=self.scope
-                ),
+                """
+                if (window.AlasLogClient) {
+                    window.AlasLogClient.appendLog(text, keep_bottom);
+                } else {
+                    var $log = $("#pywebio-scope-" + scope + ">div");
+                    $log.append(text);
+                    if (keep_bottom) {
+                        $("#pywebio-scope-" + scope).scrollTop($("#pywebio-scope-" + scope).prop("scrollHeight"));
+                    }
+                }
+                """,
+                scope=self.scope,
                 text=str(text),
+                keep_bottom=self.keep_bottom,
             )
-            if self.keep_bottom:
-                self.scroll()
 
     def reset(self):
-        run_js(f"""$("#pywebio-scope-{self.scope}>div").empty();""")
+        run_js(
+            """
+            if (window.AlasLogClient) {
+                window.AlasLogClient.resetLog();
+            } else {
+                $("#pywebio-scope-" + scope + ">div").empty();
+            }
+            """,
+            scope=self.scope,
+        )
 
     def scroll(self) -> None:
         run_js(
@@ -189,22 +207,32 @@ class RichLog:
     def put_log(self, pm: ProcessManager) -> Generator:
         yield
         try:
+            self.need_snapshot = True
+            last_idx = len(pm.renderables)
             while True:
-                last_idx = len(pm.renderables)
-                html = "".join(map(self.render, pm.renderables[:]))
-                self.reset()
-                self.extend(html)
-                counter = last_idx
-                while counter < pm.renderables_max_length * 2:
+                if self.paused:
                     yield
-                    idx = len(pm.renderables)
-                    if idx < last_idx:
-                        last_idx -= pm.renderables_reduce_length
-                    if idx != last_idx:
-                        html = "".join(map(self.render, pm.renderables[last_idx:idx]))
-                        self.extend(html)
-                        counter += idx - last_idx
-                        last_idx = idx
+                    continue
+
+                if self.need_snapshot:
+                    self.need_snapshot = False
+                    snapshot_count = 100
+                    items = pm.renderables[-snapshot_count:] if len(pm.renderables) > snapshot_count else pm.renderables[:]
+                    html = "".join(map(self.render, items))
+                    self.reset()
+                    self.extend(html)
+                    last_idx = len(pm.renderables)
+                    yield
+                    continue
+
+                idx = len(pm.renderables)
+                if idx < last_idx:
+                    last_idx = max(0, last_idx - pm.renderables_reduce_length)
+                if idx != last_idx:
+                    html = "".join(map(self.render, pm.renderables[last_idx:idx]))
+                    self.extend(html)
+                    last_idx = idx
+                yield
         except SessionException:
             pass
 

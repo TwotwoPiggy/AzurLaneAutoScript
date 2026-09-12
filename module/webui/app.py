@@ -33,6 +33,7 @@ from pywebio.output import (
     put_table,
     put_text,
     put_warning,
+    output_register_callback,
     toast,
     use_scope,
 )
@@ -121,6 +122,26 @@ class AlasGUI(Frame):
         self.inst_cache = []
         self.load_home = False
         self.af_flag = False
+        self.active_log: Optional[RichLog] = None
+        self.beacon_callback_id = None
+
+    def _handle_client_beacon(self, data: Union[str, dict]) -> None:
+        if isinstance(data, str):
+            action = data
+        elif isinstance(data, dict):
+            action = data.get("action")
+        else:
+            return
+
+        if action == "ping":
+            return
+        elif action == "pause":
+            if self.active_log is not None:
+                self.active_log.paused = True
+        elif action == "resume":
+            if self.active_log is not None:
+                self.active_log.paused = False
+                self.active_log.need_snapshot = True
 
     @use_scope("aside", clear=True)
     def set_aside(self) -> None:
@@ -522,6 +543,9 @@ class AlasGUI(Frame):
                 localStorage.setItem("alas_logs_collapsed", "true");
                 $("div[style*='--btn-toggle-log--']>button, div[style*='--btn-toggle-log-right--']>button").text('{expand_text}');
             }}
+            if (window.AlasLogClient) {{
+                window.AlasLogClient.checkVisibility();
+            }}
             """
         )
 
@@ -644,6 +668,7 @@ class AlasGUI(Frame):
         switch_scheduler.update_button = update_scheduler_btn
 
         log = RichLog("log")
+        self.active_log = log
 
         with use_scope("logs"):
             put_scope(
@@ -703,6 +728,9 @@ class AlasGUI(Frame):
             }}
             if (window.purgeAlasDisclaimers) {{
                 window.purgeAlasDisclaimers();
+            }}
+            if (window.AlasLogClient) {{
+                window.AlasLogClient.checkVisibility();
             }}
             """
         )
@@ -940,6 +968,7 @@ class AlasGUI(Frame):
         self.set_title(t(f"Task.{task}.name"))
 
         log = RichLog("log")
+        self.active_log = log
 
         if self.is_mobile:
             put_scope(
@@ -1704,22 +1733,171 @@ class AlasGUI(Frame):
         else:
             add_css(filepath_css("light-alas"))
 
+        self.beacon_callback_id = output_register_callback(self._handle_client_beacon, serial_mode=True)
+
         # Auto refresh when lost connection
         # [For develop] Disable by run `reload=0` in console
         run_js(
             """
+        (function() {
+            window.AlasLogClient = {
+                scopeId: 'pywebio-scope-log',
+                maxLines: 150,
+                callbackId: null,
+                isPaused: false,
+                pingTimer: null,
+                reconnectTimer: null,
+                reconnectDelays: [3000, 6000, 12000, 24000, 30000],
+                reconnectAttempt: 0,
+
+                getContainer: function() {
+                    return document.getElementById(this.scopeId);
+                },
+
+                getContentDiv: function() {
+                    var c = this.getContainer();
+                    return c ? c.querySelector('div') : null;
+                },
+
+                isNearBottom: function() {
+                    var c = this.getContainer();
+                    if (!c) return true;
+                    return (c.scrollHeight - c.scrollTop - c.clientHeight) <= 30;
+                },
+
+                appendLog: function(htmlText, keepBottom) {
+                    var content = this.getContentDiv();
+                    var container = this.getContainer();
+                    if (!content || !container) return;
+
+                    var shouldStick = keepBottom || this.isNearBottom();
+                    var prevScrollTop = container.scrollTop;
+
+                    var temp = document.createElement('div');
+                    temp.innerHTML = htmlText;
+                    while (temp.firstChild) {
+                        content.appendChild(temp.firstChild);
+                    }
+
+                    var removedHeight = 0;
+                    var excess = content.children.length - this.maxLines;
+                    if (excess > 0) {
+                        for (var i = 0; i < excess; i++) {
+                            if (content.firstChild) {
+                                if (!shouldStick) {
+                                    removedHeight += content.firstChild.offsetHeight || 0;
+                                }
+                                content.removeChild(content.firstChild);
+                            }
+                        }
+                    }
+
+                    if (shouldStick) {
+                        container.scrollTop = container.scrollHeight;
+                    } else if (removedHeight > 0) {
+                        container.scrollTop = prevScrollTop - removedHeight;
+                    }
+                },
+
+                resetLog: function() {
+                    var content = this.getContentDiv();
+                    if (content) {
+                        content.innerHTML = '';
+                    }
+                },
+
+                sendBeacon: function(action) {
+                    if (this.callbackId && window.WebIO && window.WebIO.pushData) {
+                        try {
+                            window.WebIO.pushData({ action: action }, this.callbackId);
+                        } catch (e) {
+                            console.warn('[AlasLogClient] pushData failed', e);
+                        }
+                    }
+                },
+
+                checkVisibility: function() {
+                    var isHidden = document.visibilityState === 'hidden';
+                    var $ov = $("#pywebio-scope-overview");
+                    var isCollapsed = localStorage.getItem("alas_logs_collapsed") === "true" ||
+                                      ($ov.length > 0 && $ov.hasClass("logs-collapsed"));
+                    var shouldPause = isHidden || isCollapsed;
+                    if (shouldPause !== this.isPaused) {
+                        this.isPaused = shouldPause;
+                        this.sendBeacon(shouldPause ? 'pause' : 'resume');
+                    }
+                },
+
+                startHeartbeat: function() {
+                    if (this.pingTimer) clearInterval(this.pingTimer);
+                    var self = this;
+                    this.pingTimer = setInterval(function() {
+                        self.sendBeacon('ping');
+                    }, 30000);
+                },
+
+                onSessionClosed: function() {
+                    if (window.reload === 0) return;
+                    if (this.reconnectTimer) return;
+                    var self = this;
+                    function attemptProbe() {
+                        var delay = self.reconnectDelays[Math.min(self.reconnectAttempt, self.reconnectDelays.length - 1)];
+                        self.reconnectAttempt++;
+                        self.reconnectTimer = setTimeout(function() {
+                            fetch(window.location.href, { method: 'HEAD', cache: 'no-store' })
+                                .then(function(res) {
+                                    if (res.ok) {
+                                        window.location.reload();
+                                    } else {
+                                        attemptProbe();
+                                    }
+                                })
+                                .catch(function() {
+                                    attemptProbe();
+                                });
+                        }, delay);
+                    }
+                    attemptProbe();
+                },
+
+                init: function(callbackId) {
+                    this.callbackId = callbackId;
+                    var self = this;
+                    if (!this._initialized) {
+                        this._initialized = true;
+                        document.addEventListener('visibilitychange', function() {
+                            self.checkVisibility();
+                        });
+                        $(document).on('click', "div[style*='--btn-toggle-log--']>button, div[style*='--btn-toggle-log-right--']>button", function() {
+                            setTimeout(function() { self.checkVisibility(); }, 50);
+                        });
+                        this.startHeartbeat();
+                    }
+                    this.checkVisibility();
+                }
+            };
+        })();
+
         reload = 1;
         WebIO._state.CurrentSession.on_session_close(
             ()=>{
-                setTimeout(
-                    ()=>{
-                        if (reload == 1){
-                            location.reload();
-                        }
-                    }, 4000
-                )
+                if (window.AlasLogClient) {
+                    window.AlasLogClient.onSessionClosed();
+                } else {
+                    setTimeout(
+                        ()=>{
+                            if (reload == 1){
+                                location.reload();
+                            }
+                        }, 4000
+                    );
+                }
             }
         );
+
+        if (window.AlasLogClient) {
+            window.AlasLogClient.init(callback_id);
+        }
 
         (function() {
             function purgeDisclaimers() {
@@ -1757,7 +1935,8 @@ class AlasGUI(Frame):
             }
             purgeDisclaimers();
         })();
-        """
+        """,
+            callback_id=self.beacon_callback_id,
         )
 
         aside = get_localstorage("aside")

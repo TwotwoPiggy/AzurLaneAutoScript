@@ -29,8 +29,8 @@ class ProcessManager:
         self.config_name = config_name
         self._renderable_queue: queue.Queue[ConsoleRenderable] = State.manager.Queue()
         self.renderables: List[ConsoleRenderable] = []
-        self.renderables_max_length = 400
-        self.renderables_reduce_length = 80
+        self.renderables_max_length = 150
+        self.renderables_reduce_length = 30
         self._process: Process = None
         self._process_locks: Dict[str, threading.Lock] = {}
         self.thd_log_queue_handler: threading.Thread = None

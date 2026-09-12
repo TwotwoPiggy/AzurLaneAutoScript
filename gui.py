@@ -80,9 +80,9 @@ def func(ev: threading.Event):
         logger.error("SSL certificate provided without key. Please provide both SSL key and certificate.")
 
     if ssl:
-        uvicorn.run("module.webui.app:app", host=host, port=port, factory=True, ssl_keyfile=ssl_key, ssl_certfile=ssl_cert)
+        uvicorn.run("module.webui.app:app", host=host, port=port, factory=True, ssl_keyfile=ssl_key, ssl_certfile=ssl_cert, ws_ping_interval=30.0, ws_ping_timeout=30.0)
     else:
-        uvicorn.run("module.webui.app:app", host=host, port=port, factory=True)
+        uvicorn.run("module.webui.app:app", host=host, port=port, factory=True, ws_ping_interval=30.0, ws_ping_timeout=30.0)
 
 
 if __name__ == "__main__":
