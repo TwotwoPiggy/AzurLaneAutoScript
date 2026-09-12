@@ -35,7 +35,7 @@ class GeneratedConfig:
     Error_HandleError = True
     Error_SaveError = True
     Error_OnePushConfig = 'provider: null'
-    Error_ScreenshotLength = 1
+    Error_ScreenshotLength = 60
 
     # Group `Optimization`
     Optimization_ScreenshotInterval = 0.3

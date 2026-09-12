@@ -148,8 +148,13 @@ class AzurLaneAutoScript:
             os.mkdir(folder)
             for data in self.device.screenshot_deque:
                 image_time = datetime.strftime(data['time'], '%Y-%m-%d_%H-%M-%S-%f')
-                image = handle_sensitive_image(data['image'])
-                save_image(image, f'{folder}/{image_time}.png')
+                image_bytes = data.get('image_bytes')
+                if image_bytes is not None:
+                    with open(f'{folder}/{image_time}.jpg', 'wb') as f:
+                        f.write(image_bytes)
+                else:
+                    image = handle_sensitive_image(data['image'])
+                    save_image(image, f'{folder}/{image_time}.png')
             with open(logger.log_file, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
                 start = 0
