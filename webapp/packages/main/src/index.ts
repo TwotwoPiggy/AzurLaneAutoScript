@@ -3,6 +3,11 @@ import {URL} from 'url';
 import {PyShell} from '/@/pyshell';
 import {webuiArgs, webuiPath, dpiScaling} from '/@/config';
 
+import {configurePerformanceFlags} from '/@/flags';
+import {setupGpuRecoveryWatchdog} from '/@/watchdog';
+import {Win32MemoryTrimmer} from '/@/trimmer';
+import {WindowPowerThrottler} from '/@/throttler';
+
 const path = require('path');
 
 const isSingleInstance = app.requestSingleInstanceLock();
@@ -12,7 +17,7 @@ if (!isSingleInstance) {
   process.exit(0);
 }
 
-app.disableHardwareAcceleration();
+configurePerformanceFlags(dpiScaling);
 
 // Install "Vue.js devtools"
 if (import.meta.env.MODE === 'development') {
@@ -36,6 +41,7 @@ alas.end(function (err: string) {
 
 
 let mainWindow: BrowserWindow | null = null;
+let tray: Tray | null = null;
 
 const createWindow = async () => {
   mainWindow = new BrowserWindow({
@@ -51,6 +57,9 @@ const createWindow = async () => {
       // preload: join(__dirname, '../../preload/dist/index.cjs'),
     },
   });
+
+  const trimmer = new Win32MemoryTrimmer();
+  const throttler = new WindowPowerThrottler(mainWindow, trimmer);
 
   /**
    * If you install `show: true` then it can cause issues when trying to close the window.
@@ -71,6 +80,8 @@ const createWindow = async () => {
   });
 
   mainWindow.on('focus', function () {
+    throttler.handleFocus();
+
     // Dev tools
     globalShortcut.register('Ctrl+Shift+I', function () {
       if (mainWindow?.webContents.isDevToolsOpened()) {
@@ -87,16 +98,40 @@ const createWindow = async () => {
       mainWindow?.reload()
     });
   });
+
   mainWindow.on('blur', function () {
-    globalShortcut.unregisterAll()
+    globalShortcut.unregisterAll();
+    throttler.handleBlur();
+  });
+
+  mainWindow.on('minimize', function () {
+    throttler.handleMinimizeOrHide();
+  });
+
+  mainWindow.on('restore', function () {
+    throttler.handleFocus();
+  });
+
+  mainWindow.on('hide', function () {
+    throttler.handleMinimizeOrHide();
+  });
+
+  mainWindow.on('show', function () {
+    throttler.handleFocus();
+  });
+
+  mainWindow.on('closed', function () {
+    throttler.destroy();
   });
 
   // Minimize, maximize, close window.
   ipcMain.on('window-tray', function () {
     mainWindow?.hide();
+    throttler.handleMinimizeOrHide();
   });
   ipcMain.on('window-min', function () {
     mainWindow?.minimize();
+    throttler.handleMinimizeOrHide();
   });
   ipcMain.on('window-max', function () {
     mainWindow?.isMaximized() ? mainWindow?.restore() : mainWindow?.maximize();
@@ -108,7 +143,7 @@ const createWindow = async () => {
   });
 
   // Tray
-  const tray = new Tray(path.join(__dirname, 'icon.png'));
+  tray = new Tray(path.join(__dirname, 'icon.png'));
   const contextMenu = Menu.buildFromTemplate([
     {
       label: 'Show',
@@ -137,16 +172,12 @@ const createWindow = async () => {
     mainWindow?.isVisible() ? mainWindow?.hide() : mainWindow?.show()
   });
   tray.on('right-click', () => {
-    tray.popUpContextMenu(contextMenu)
+    tray?.popUpContextMenu(contextMenu);
   });
+
+  // Setup GPU recovery watchdog with window and tray getters
+  setupGpuRecoveryWatchdog(() => mainWindow, () => tray);
 };
-
-
-// No DPI scaling
-if (!dpiScaling) {
-  app.commandLine.appendSwitch('high-dpi-support', '1');
-  app.commandLine.appendSwitch('force-device-scale-factor', '1');
-}
 
 
 function loadURL() {

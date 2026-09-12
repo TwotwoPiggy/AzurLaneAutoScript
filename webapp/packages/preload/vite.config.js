@@ -1,8 +1,11 @@
-import {chrome} from '../../electron-vendors.config.json';
+import {createRequire, builtinModules} from 'module';
 import {join} from 'path';
-import {builtinModules} from 'module';
+import {fileURLToPath} from 'url';
 
-const PACKAGE_ROOT = __dirname;
+const require = createRequire(import.meta.url);
+const {chrome} = require('../../electron-vendors.config.json');
+
+const PACKAGE_ROOT = typeof __dirname !== 'undefined' ? __dirname : fileURLToPath(new URL('.', import.meta.url));
 
 /**
  * @type {import('vite').UserConfig}
