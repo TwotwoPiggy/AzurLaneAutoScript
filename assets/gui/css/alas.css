@@ -561,7 +561,7 @@ pre.rich-traceback-code {
    Modern Dashboard & Collapse Enhancements
    ========================================================================== */
 
-/* 左侧导航栏折叠支持 */
+/* Menu collapse support */
 .container-menu-collapsed,
 #pywebio-scope-menu.menu-collapsed {
     display: none !important;
@@ -584,7 +584,7 @@ pre.rich-traceback-code {
     margin-bottom: 0.25rem;
 }
 
-/* 日志模块折叠支持 */
+/* Logs collapse support */
 #pywebio-scope-overview.logs-collapsed {
     grid-template-columns: 1fr !important;
 }
@@ -594,7 +594,7 @@ pre.rich-traceback-code {
     display: none !important;
 }
 
-/* 调度器控制中心卡片 */
+/* Scheduler control panel */
 #pywebio-scope-scheduler-bar {
     display: flex;
     align-items: center;
@@ -650,7 +650,7 @@ pre.rich-traceback-code {
     gap: 0.5rem;
 }
 
-/* 分组头部与徽章 */
+/* Group header and badge */
 .section-header-wrap {
     display: flex;
     align-items: center;
@@ -679,7 +679,7 @@ pre.rich-traceback-code {
     line-height: 1.2;
 }
 
-/* 现代化任务卡片 */
+/* Modern task card */
 [id^="pywebio-scope-overview-task_"] {
     display: flex !important;
     align-items: center !important;
@@ -695,12 +695,12 @@ pre.rich-traceback-code {
     transform: translateY(-1px);
 }
 
-/* 运行中特殊高亮卡片 */
+/* Running task highlight */
 [id^="pywebio-scope-overview-task_run_"] {
     border-left: 4px solid #3ba55d !important;
 }
 
-/* 任务卡片内部排版 */
+/* Task card layout */
 .task-meta-box {
     display: flex;
     flex-direction: column;
@@ -725,7 +725,7 @@ pre.rich-traceback-code {
     line-height: 1.2;
 }
 
-/* 按钮微调 */
+/* Button adjustments */
 [id^="pywebio-scope-overview-task_"] .btn {
     padding: 0.22rem 0.55rem !important;
     font-size: 0.82rem !important;
@@ -735,7 +735,7 @@ pre.rich-traceback-code {
     transition: all 0.15s ease !important;
 }
 
-/* 空状态卡片 */
+/* Empty state card */
 .overview-empty-box {
     padding: 0.65rem 0.85rem;
     text-align: center;
@@ -744,7 +744,7 @@ pre.rich-traceback-code {
     margin: 0.25rem 0.35rem;
 }
 
-/* 日志折叠时的自适应任务网格 */
+/* Responsive task grid when logs collapsed */
 #pywebio-scope-overview.logs-collapsed #pywebio-scope-favorite_tasks,
 #pywebio-scope-overview.logs-collapsed #pywebio-scope-waiting_tasks,
 #pywebio-scope-overview.logs-collapsed #pywebio-scope-disabled_tasks {
