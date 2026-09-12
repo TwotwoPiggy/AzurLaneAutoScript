@@ -99,8 +99,13 @@ class Frame(Base):
     def collapse_menu() -> None:
         run_js(
             """
-            $("#pywebio-scope-menu").addClass("container-menu-collapsed");
-            $(".container-content-collapsed").removeClass("container-content-collapsed");
+            if (window.innerWidth <= 768) {
+                $("#pywebio-scope-menu").addClass("container-menu-collapsed");
+                $(".container-content-collapsed").removeClass("container-content-collapsed");
+            } else {
+                $("#pywebio-scope-menu").addClass("menu-collapsed-pc");
+                localStorage.setItem("alas_menu_collapsed_pc", "true");
+            }
         """
         )
 
@@ -108,8 +113,13 @@ class Frame(Base):
     def expand_menu() -> None:
         run_js(
             """
-            $(".container-menu-collapsed").removeClass("container-menu-collapsed");
-            $("#pywebio-scope-content").addClass("container-content-collapsed");
+            if (window.innerWidth <= 768) {
+                $(".container-menu-collapsed").removeClass("container-menu-collapsed");
+                $("#pywebio-scope-content").addClass("container-content-collapsed");
+            } else {
+                $("#pywebio-scope-menu").removeClass("menu-collapsed-pc");
+                localStorage.setItem("alas_menu_collapsed_pc", "false");
+            }
         """
         )
 

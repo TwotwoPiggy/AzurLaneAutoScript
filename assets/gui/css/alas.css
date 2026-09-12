@@ -781,3 +781,14 @@ pre.rich-traceback-code {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
     gap: 6px !important;
 }
+
+/* Expand menu button when menu is collapsed on PC */
+*[style*="--btn-menu-expand--"] {
+    display: none !important;
+}
+
+#pywebio-scope-menu.menu-collapsed-pc ~ #pywebio-scope-content *[style*="--btn-menu-expand--"] {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+}

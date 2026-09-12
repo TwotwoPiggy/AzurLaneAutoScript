@@ -536,6 +536,11 @@ class AlasGUI(Frame):
             put_scope(
                 "scheduler-bar",
                 [
+                    put_button(
+                        label="»",
+                        onclick=self.toggle_menu,
+                        color="menu",
+                    ).style("width: 2.2rem; padding: 0.25rem 0; margin: auto 0.5rem auto 0; text-align: center; border-radius: 4px; font-size: 0.95rem;").style("--btn-menu-expand--"),
                     put_text(t("Gui.Overview.Scheduler")).style(
                         "font-size: 1.25rem; font-weight: 600; margin: auto .5rem auto 0;"
                     ),
@@ -961,6 +966,11 @@ class AlasGUI(Frame):
         log.console.width = log.get_width()
 
         with use_scope("scheduler-bar"):
+            put_button(
+                label="»",
+                onclick=self.toggle_menu,
+                color="menu",
+            ).style("width: 2.2rem; padding: 0.25rem 0; margin: auto 0.5rem auto 0; text-align: center; border-radius: 4px; font-size: 0.95rem;").style("--btn-menu-expand--"),
             put_text(t("Gui.Overview.Scheduler")).style(
                 "font-size: 1.25rem; margin: auto .5rem auto;"
             )
