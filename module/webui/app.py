@@ -565,23 +565,6 @@ class AlasGUI(Frame):
                 ],
             )
             put_scope(
-                "favorites",
-                [
-                    put_row(
-                        [
-                            put_text(t("Gui.Overview.Favorites")).style("--section-title--").style("margin: 0 !important;"),
-                            put_button(
-                                label=t("Gui.Button.AddFavorite"),
-                                onclick=self.alas_popup_add_favorite,
-                                color="off",
-                            ).style("margin: auto 0 auto auto; padding: .2rem .6rem; font-size: .82rem; border-radius: 4px;"),
-                        ],
-                        size="1fr auto",
-                    ).style("margin: 0.6rem 0.45rem 0.35rem; align-items: center;"),
-                    put_scope("favorite_tasks"),
-                ],
-            )
-            put_scope(
                 "pending",
                 [
                     put_text(t("Gui.Overview.QueueTitle")).style("--section-title--"),
@@ -589,10 +572,35 @@ class AlasGUI(Frame):
                 ],
             )
             put_scope(
+                "favorites",
+                [
+                    put_collapse(
+                        title=t("Gui.Overview.Favorites"),
+                        content=[
+                            put_row(
+                                [
+                                    put_button(
+                                        label=t("Gui.Button.AddFavorite"),
+                                        onclick=self.alas_popup_add_favorite,
+                                        color="off",
+                                    ).style("margin: 0 0 0.4rem auto; padding: .2rem .6rem; font-size: .82rem; border-radius: 4px;"),
+                                ],
+                                size="1fr",
+                            ).style("align-items: center;"),
+                            put_scope("favorite_tasks"),
+                        ],
+                        open=False,
+                    )
+                ],
+            )
+            put_scope(
                 "waiting",
                 [
-                    put_text(t("Gui.Overview.Waiting")).style("--section-title--"),
-                    put_scope("waiting_tasks"),
+                    put_collapse(
+                        title=t("Gui.Overview.Waiting"),
+                        content=[put_scope("waiting_tasks")],
+                        open=False,
+                    )
                 ],
             )
             put_scope(

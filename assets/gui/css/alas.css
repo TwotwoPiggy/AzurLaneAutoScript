@@ -12,9 +12,22 @@ details[open] > div {
     margin-left: 0.625rem;
 }
 
+#pywebio-scope-schedulers details[open] > div {
+    margin-left: 0 !important;
+}
+
 summary {
     background-color: transparent !important;
     font-weight: 500;
+}
+
+#pywebio-scope-schedulers details > summary {
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    margin: 0.6rem 0.45rem 0.35rem !important;
+    cursor: pointer;
+    user-select: none;
+    outline: none !important;
 }
 
 body {
