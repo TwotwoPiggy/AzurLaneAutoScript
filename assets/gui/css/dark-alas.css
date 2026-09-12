@@ -153,3 +153,79 @@ pre.rich-traceback-code {
 [id^="pywebio-scope-group_"] > p + p {
     color: #adb5bd;
 }
+
+#pywebio-scope-overview-resizer:hover,
+#pywebio-scope-overview-resizer.is-dragging {
+    background-color: #7a77bb;
+}
+
+#pywebio-scope-overview-resizer:hover .overview-resizer-line,
+#pywebio-scope-overview-resizer.is-dragging .overview-resizer-line {
+    background-color: white;
+}
+
+/* Dashboard Card Colors (Dark Theme) */
+#pywebio-scope-scheduler-bar {
+    background-color: #25272b;
+    border: 1px solid #36393f;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.scheduler-status-badge {
+    background-color: #2f3136;
+    border: 1px solid #36393f;
+    color: #c9d1d9;
+}
+
+.scheduler-status-badge.status-running {
+    background-color: rgba(59, 165, 93, 0.15);
+    border-color: rgba(59, 165, 93, 0.35);
+    color: #3ba55d;
+}
+
+.task-count-badge {
+    background-color: #36393f;
+    color: #c9d1d9;
+}
+
+[id^="pywebio-scope-overview-task_"] {
+    background-color: #2b2d31 !important;
+    border: 1px solid #36393f !important;
+}
+
+[id^="pywebio-scope-overview-task_"]:hover {
+    background-color: #313338 !important;
+    border-color: #4e5058 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+[id^="pywebio-scope-overview-task_run_"] {
+    background-color: rgba(59, 165, 93, 0.08) !important;
+    border: 1px solid rgba(59, 165, 93, 0.45) !important;
+    border-left: 4px solid #3ba55d !important;
+}
+
+.task-meta-title {
+    color: #f2f3f5;
+}
+
+.task-meta-time {
+    color: #949ba4;
+}
+
+.overview-empty-box {
+    background-color: #26282c;
+    border: 1px dashed #36393f;
+    color: #72767d;
+}
+
+.menu-toggle-btn {
+    background-color: #2f3136;
+    color: #adb5bd;
+    border: 1px solid #36393f;
+}
+
+.menu-toggle-btn:hover {
+    background-color: #36393f;
+    color: #ffffff;
+}

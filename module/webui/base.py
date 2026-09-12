@@ -1,4 +1,4 @@
-from pywebio.output import clear, put_html, put_scope, put_text, use_scope
+from pywebio.output import clear, put_button, put_html, put_scope, put_text, use_scope
 from pywebio.session import defer_call, info, run_js
 
 from module.webui.utils import Icon, WebIOTaskHandler, set_localstorage
@@ -45,7 +45,7 @@ class Frame(Base):
         """
         Call this in menu button callback function.
         Args:
-            collapse_menu: collapse menu
+            collapse_menu: collapse menu when in mobile device
             name: button name(label) to be highlight
         """
         self.visible = True
@@ -65,6 +65,10 @@ class Frame(Base):
             [
                 put_html(Icon.ALAS).style("--header-icon--"),
                 put_text("Alas").style("--header-text--"),
+                put_button(
+                    "☰",
+                    onclick=Frame.toggle_menu,
+                ).style("--header-menu-toggle--"),
                 put_scope("header_status"),
                 put_scope("header_title"),
             ],
@@ -86,18 +90,37 @@ class Frame(Base):
     @staticmethod
     def collapse_menu() -> None:
         run_js(
-            f"""
+            """
             $("#pywebio-scope-menu").addClass("container-menu-collapsed");
             $(".container-content-collapsed").removeClass("container-content-collapsed");
+            localStorage.setItem("alas_menu_collapsed", "true");
         """
         )
 
     @staticmethod
     def expand_menu() -> None:
         run_js(
-            f"""
-            $(".container-menu-collapsed").removeClass("container-menu-collapsed");
+            """
+            $("#pywebio-scope-menu").removeClass("container-menu-collapsed");
             $("#pywebio-scope-content").addClass("container-content-collapsed");
+            localStorage.setItem("alas_menu_collapsed", "false");
+        """
+        )
+
+    @staticmethod
+    def toggle_menu() -> None:
+        run_js(
+            """
+            var $menu = $("#pywebio-scope-menu");
+            if ($menu.hasClass("container-menu-collapsed")) {
+                $menu.removeClass("container-menu-collapsed");
+                $("#pywebio-scope-content").addClass("container-content-collapsed");
+                localStorage.setItem("alas_menu_collapsed", "false");
+            } else {
+                $menu.addClass("container-menu-collapsed");
+                $(".container-content-collapsed").removeClass("container-content-collapsed");
+                localStorage.setItem("alas_menu_collapsed", "true");
+            }
         """
         )
 

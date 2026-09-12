@@ -232,16 +232,26 @@ class AlasGUI(Frame):
         """
         Set menu
         """
-        put_buttons(
+        put_row(
             [
-                {
-                    "label": t("Gui.MenuAlas.Overview"),
-                    "value": "Overview",
-                    "color": "menu",
-                }
+                put_buttons(
+                    [
+                        {
+                            "label": t("Gui.MenuAlas.Overview"),
+                            "value": "Overview",
+                            "color": "menu",
+                        }
+                    ],
+                    onclick=[self.alas_overview],
+                ).style(f"--menu-Overview--"),
+                put_button(
+                    label="⮜",
+                    onclick=self.collapse_menu,
+                    color="menu",
+                ).style("width: 2.2rem; padding: 0.25rem 0; margin-left: auto; text-align: center; border-radius: 4px; font-size: 0.95rem;").style("--btn-menu-collapse--"),
             ],
-            onclick=[self.alas_overview],
-        ).style(f"--menu-Overview--")
+            size="1fr auto",
+        )
 
         for menu, task_data in self.ALAS_MENU.items():
             if task_data.get("page") == "tool":
@@ -497,6 +507,24 @@ class AlasGUI(Frame):
             ],
         )
 
+    def toggle_logs(self) -> None:
+        collapse_text = t("Gui.Button.CollapseLog")
+        expand_text = t("Gui.Button.ExpandLog")
+        run_js(
+            f"""
+            var $ov = $("#pywebio-scope-overview");
+            if ($ov.hasClass("logs-collapsed")) {{
+                $ov.removeClass("logs-collapsed");
+                localStorage.setItem("alas_logs_collapsed", "false");
+                $("div[style*='--btn-toggle-log--']>button").text('{collapse_text}');
+            }} else {{
+                $ov.addClass("logs-collapsed");
+                localStorage.setItem("alas_logs_collapsed", "true");
+                $("div[style*='--btn-toggle-log--']>button").text('{expand_text}');
+            }}
+            """
+        )
+
     @use_scope("content", clear=True)
     def alas_overview(self) -> None:
         self.init_menu(name="Overview")
@@ -508,17 +536,44 @@ class AlasGUI(Frame):
             put_scope(
                 "scheduler-bar",
                 [
-                    put_text(t("Gui.Overview.Scheduler")).style(
-                        "font-size: 1.25rem; margin: auto .5rem auto;"
+                    put_html(f"""
+                    <div class="scheduler-title-wrap">
+                        <span style="font-size: 1.2rem; font-weight: 600;">{t("Gui.Overview.Scheduler")}</span>
+                        <div id="scheduler-status-indicator" class="scheduler-status-badge status-idle">
+                            <span class="status-dot status-dot-idle"></span>
+                            <span class="status-text">{t("Gui.Overview.StatusIdle")}</span>
+                        </div>
+                    </div>
+                    """),
+                    put_scope(
+                        "scheduler-actions",
+                        [
+                            put_row(
+                                [
+                                    put_scope("scheduler_btn"),
+                                    put_button(
+                                        label=t("Gui.Button.CollapseLog"),
+                                        onclick=self.toggle_logs,
+                                        color="off",
+                                    ).style("padding: .22rem .65rem; font-size: .85rem; border-radius: 4px; margin-left: 0.4rem;").style("--btn-toggle-log--"),
+                                ],
+                                size="auto auto",
+                            ).style("margin: auto 0 auto auto; align-items: center;"),
+                        ],
                     ),
-                    put_scope("scheduler_btn"),
                 ],
             )
             put_scope(
                 "running",
                 [
-                    put_text(t("Gui.Overview.Running")),
-                    put_html('<hr class="hr-group">'),
+                    put_html(f"""
+                    <div class="section-header-wrap">
+                        <div class="section-title-box">
+                            <span class="section-title-text">{t("Gui.Overview.Running")}</span>
+                            <span id="badge-running-count" class="task-count-badge">0</span>
+                        </div>
+                    </div>
+                    """),
                     put_scope("running_tasks"),
                 ],
             )
@@ -527,32 +582,48 @@ class AlasGUI(Frame):
                 [
                     put_row(
                         [
-                            put_text(t("Gui.Overview.Favorites")),
+                            put_html(f"""
+                            <div class="section-title-box">
+                                <span class="section-title-text">{t("Gui.Overview.Favorites")}</span>
+                                <span id="badge-favorites-count" class="task-count-badge">0</span>
+                            </div>
+                            """),
                             put_button(
                                 label=t("Gui.Button.AddFavorite"),
                                 onclick=self.alas_popup_add_favorite,
                                 color="off",
-                            ).style("margin: auto 0 auto auto; padding: .15rem .5rem; font-size: .85rem;"),
+                            ).style("margin: auto 0 auto auto; padding: .2rem .6rem; font-size: .82rem; border-radius: 4px;"),
                         ],
                         size="1fr auto",
-                    ),
-                    put_html('<hr class="hr-group">'),
+                    ).style("margin: 0.6rem 0.45rem 0.35rem; align-items: center;"),
                     put_scope("favorite_tasks"),
                 ],
             )
             put_scope(
                 "pending",
                 [
-                    put_text(t("Gui.Overview.Pending")),
-                    put_html('<hr class="hr-group">'),
+                    put_html(f"""
+                    <div class="section-header-wrap">
+                        <div class="section-title-box">
+                            <span class="section-title-text">{t("Gui.Overview.QueueTitle")}</span>
+                            <span id="badge-pending-count" class="task-count-badge">0</span>
+                        </div>
+                    </div>
+                    """),
                     put_scope("pending_tasks"),
                 ],
             )
             put_scope(
                 "waiting",
                 [
-                    put_text(t("Gui.Overview.Waiting")),
-                    put_html('<hr class="hr-group">'),
+                    put_html(f"""
+                    <div class="section-header-wrap">
+                        <div class="section-title-box">
+                            <span class="section-title-text">{t("Gui.Overview.Waiting")}</span>
+                            <span id="badge-waiting-count" class="task-count-badge">0</span>
+                        </div>
+                    </div>
+                    """),
                     put_scope("waiting_tasks"),
                 ],
             )
@@ -567,16 +638,34 @@ class AlasGUI(Frame):
                 ],
             )
 
+        def update_scheduler_btn(label, onclick, color):
+            clear("scheduler_btn")
+            put_button(
+                label=label,
+                onclick=onclick,
+                color=color,
+                scope="scheduler_btn",
+            ).style("padding: .22rem .8rem; font-size: .85rem; border-radius: 4px; font-weight: 500;")
+
+            is_alive = (label == t("Gui.Button.Stop"))
+            status_text = t("Gui.Overview.StatusRunning") if is_alive else t("Gui.Overview.StatusIdle")
+            dot_class = "status-dot status-dot-running" if is_alive else "status-dot status-dot-idle"
+            badge_class = "scheduler-status-badge status-running" if is_alive else "scheduler-status-badge status-idle"
+            run_js(f"""
+            $("#scheduler-status-indicator").attr("class", "{badge_class}").html('<span class="{dot_class}"></span><span class="status-text">{status_text}</span>');
+            """)
+
         switch_scheduler = BinarySwitchButton(
             label_on=t("Gui.Button.Stop"),
             label_off=t("Gui.Button.Start"),
             onclick_on=lambda: self.alas.stop(),
             onclick_off=lambda: self.alas.start(None, updater.event),
             get_state=lambda: self.alas.alive,
-            color_on="off",
-            color_off="on",
+            color_on="danger",
+            color_off="success",
             scope="scheduler_btn",
         )
+        switch_scheduler.update_button = update_scheduler_btn
 
         log = RichLog("log")
 
@@ -590,7 +679,17 @@ class AlasGUI(Frame):
                     put_scope(
                         "log-bar-btns",
                         [
-                            put_scope("log_scroll_btn"),
+                            put_row(
+                                [
+                                    put_scope("log_scroll_btn"),
+                                    put_button(
+                                        label=t("Gui.Button.CollapseLog"),
+                                        onclick=self.toggle_logs,
+                                        color="off",
+                                    ).style("padding: .22rem .65rem; font-size: .85rem; border-radius: 4px; margin-left: 0.4rem;"),
+                                ],
+                                size="auto auto",
+                            ).style("align-items: center;"),
                         ],
                     ),
                 ],
@@ -614,6 +713,22 @@ class AlasGUI(Frame):
         self.task_handler.add(switch_log_scroll.g(), 1, True)
         self.task_handler.add(self.alas_update_overview_task, 10, True)
         self.task_handler.add(log.put_log(self.alas), 0.25, True)
+
+        collapse_text = t("Gui.Button.CollapseLog")
+        expand_text = t("Gui.Button.ExpandLog")
+        run_js(
+            f"""
+            if (localStorage.getItem("alas_logs_collapsed") === "true") {{
+                $("#pywebio-scope-overview").addClass("logs-collapsed");
+                $("div[style*='--btn-toggle-log--']>button").text('{expand_text}');
+            }} else {{
+                $("div[style*='--btn-toggle-log--']>button").text('{collapse_text}');
+            }}
+            if (localStorage.getItem("alas_menu_collapsed") === "true") {{
+                $("#pywebio-scope-menu").addClass("container-menu-collapsed");
+            }}
+            """
+        )
 
     def _init_alas_config_watcher(self) -> None:
         def put_queue(path, value):
@@ -722,21 +837,26 @@ class AlasGUI(Frame):
         def put_task(func: Function, status: str = "normal", is_favorite: bool = False, prefix: str = ""):
             with use_scope(f"overview-task_{prefix}_{func.command}"):
                 if status == "running":
+                    time_icon = "⚡ "
                     time_str = t("Gui.Overview.Running")
                 elif status == "pending":
+                    time_icon = "⏳ "
                     time_str = t("Gui.Overview.Pending")
                 elif status == "disabled":
+                    time_icon = "⛔ "
                     time_str = t("Gui.Overview.Disabled")
                 else:
+                    time_icon = "🕒 "
                     time_str = str(func.next_run)
 
-                put_column(
-                    [
-                        put_text(t(f"Task.{func.command}.name")).style("--arg-title--"),
-                        put_text(time_str).style("--arg-help--"),
-                    ],
-                    size="auto auto",
-                )
+                task_name = t(f"Task.{func.command}.name")
+                put_html(f"""
+                <div class="task-meta-box">
+                    <div class="task-meta-title" title="{task_name}">{task_name}</div>
+                    <div class="task-meta-time"><span style="opacity:0.7;">{time_icon}</span><span>{time_str}</span></div>
+                </div>
+                """)
+
                 btns = []
                 if status in ("waiting", "pending"):
                     btns.append(
@@ -744,14 +864,14 @@ class AlasGUI(Frame):
                             label=t("Gui.Button.RunNow"),
                             onclick=partial(self.alas_task_run_now, func.command),
                             color="success",
-                        )
+                        ).style("background-color: #2ea043; border-color: #2ea043;")
                     )
                     btns.append(
                         put_button(
                             label=t("Gui.Button.Disable"),
                             onclick=partial(self.alas_task_toggle_enable, func.command, False),
                             color="danger",
-                        )
+                        ).style("background-color: #da3633; border-color: #da3633;")
                     )
                 elif status == "disabled":
                     btns.append(
@@ -759,7 +879,7 @@ class AlasGUI(Frame):
                             label=t("Gui.Button.Enable"),
                             onclick=partial(self.alas_task_toggle_enable, func.command, True),
                             color="primary",
-                        )
+                        ).style("background-color: #1f6feb; border-color: #1f6feb;")
                     )
                 btns.append(
                     put_button(
@@ -775,9 +895,9 @@ class AlasGUI(Frame):
                         label=fav_label,
                         onclick=partial(self.alas_toggle_favorite, func.command),
                         color=fav_color,
-                    )
+                    ).style("font-size: 0.95rem; line-height: 1;")
                 )
-                put_row(btns, size=" ".join(["auto"] * len(btns))).style("margin: auto 0 auto auto; gap: 4px;")
+                put_row(btns, size=" ".join(["auto"] * len(btns))).style("margin: auto 0 auto auto; gap: 4px; align-items: center;")
 
         clear("running_tasks")
         clear("favorite_tasks")
@@ -790,7 +910,7 @@ class AlasGUI(Frame):
                 for task in running:
                     put_task(task, status="running", is_favorite=(task.command in fav_commands), prefix="run")
             else:
-                put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
+                put_html(f'<div class="overview-empty-box">{t("Gui.Overview.NoTask")}</div>')
 
         with use_scope("favorite_tasks"):
             if fav_commands:
@@ -813,28 +933,35 @@ class AlasGUI(Frame):
                         status = "disabled"
                     put_task(func, status=status, is_favorite=True, prefix="fav")
             else:
-                put_text(t("Gui.Overview.NoFavorite")).style("--overview-notask-text--")
+                put_html(f'<div class="overview-empty-box">{t("Gui.Overview.NoFavorite")}</div>')
 
         with use_scope("pending_tasks"):
             if pending:
                 for task in pending:
                     put_task(task, status="pending", is_favorite=(task.command in fav_commands), prefix="pen")
             else:
-                put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
+                put_html(f'<div class="overview-empty-box">{t("Gui.Overview.NoTask")}</div>')
 
         with use_scope("waiting_tasks"):
             if waiting:
                 for task in waiting:
                     put_task(task, status="waiting", is_favorite=(task.command in fav_commands), prefix="wait")
             else:
-                put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
+                put_html(f'<div class="overview-empty-box">{t("Gui.Overview.NoTask")}</div>')
 
         with use_scope("disabled_tasks"):
             if disabled:
                 for task in disabled:
                     put_task(task, status="disabled", is_favorite=(task.command in fav_commands), prefix="dis")
             else:
-                put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
+                put_html(f'<div class="overview-empty-box">{t("Gui.Overview.NoTask")}</div>')
+
+        run_js(f"""
+        $('#badge-running-count').text('{len(running)}');
+        $('#badge-favorites-count').text('{len(fav_commands)}');
+        $('#badge-pending-count').text('{len(pending)}');
+        $('#badge-waiting-count').text('{len(waiting)}');
+        """)
 
     @use_scope("content", clear=True)
     def alas_daemon_overview(self, task: str) -> None:

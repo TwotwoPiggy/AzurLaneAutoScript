@@ -3004,7 +3004,15 @@
       "CheckUpdate": "アップデータチェック",
       "ClickToUpdate": "アップデータ実行",
       "RetryUpdate": "アップデータ再試行",
-      "CancelUpdate": "アップデータ中止"
+      "CancelUpdate": "アップデータ中止",
+      "RunNow": "今すぐ実行",
+      "Enable": "有効化",
+      "Disable": "無効化",
+      "AddFavorite": "➕ お気に入り追加",
+      "CollapseMenu": "ナビを折りたたむ",
+      "ExpandMenu": "ナビを展開",
+      "CollapseLog": "ログを閉じる",
+      "ExpandLog": "ログを開く"
     },
     "Toast": {
       "DisableTranslateMode": "クリックして翻訳モードを中止します",
@@ -3040,14 +3048,10 @@
       "Enabled": "有効",
       "RunNowSuccess": "すぐに実行するように設定",
       "NoTask": "No Task",
-      "NoFavorite": "お気に入りタスクはありません、「+」で追加"
-    },
-    "Button": {
-      "Setting": "設定",
-      "RunNow": "実行",
-      "Enable": "有効化",
-      "Disable": "無効化",
-      "AddFavorite": "➕ お気に入り追加"
+      "NoFavorite": "お気に入りタスクはありません、「+」で追加",
+      "StatusIdle": "停止中",
+      "StatusRunning": "実行中",
+      "QueueTitle": "待機列"
     },
     "AddAlas": {
       "PopupTitle": "新しいコンフィグを追加",

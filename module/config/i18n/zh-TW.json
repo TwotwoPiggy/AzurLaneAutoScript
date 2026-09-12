@@ -3004,7 +3004,15 @@
       "CheckUpdate": "檢查更新",
       "ClickToUpdate": "進行更新",
       "RetryUpdate": "重試更新",
-      "CancelUpdate": "取消更新"
+      "CancelUpdate": "取消更新",
+      "RunNow": "立即運行",
+      "Enable": "啟用",
+      "Disable": "關閉",
+      "AddFavorite": "➕ 新增收藏",
+      "CollapseMenu": "收起導航",
+      "ExpandMenu": "展開導航",
+      "CollapseLog": "收起日誌",
+      "ExpandLog": "展開日誌"
     },
     "Toast": {
       "DisableTranslateMode": "點擊這裡關閉翻譯模式",
@@ -3040,14 +3048,10 @@
       "Enabled": "已啟用",
       "RunNowSuccess": "已設為立即運行",
       "NoTask": "無任務",
-      "NoFavorite": "暫無收藏任務，點擊右上角【添加收藏】快速加入"
-    },
-    "Button": {
-      "Setting": "設定",
-      "RunNow": "運行",
-      "Enable": "啟用",
-      "Disable": "關閉",
-      "AddFavorite": "➕ 添加收藏"
+      "NoFavorite": "暫無收藏任務，點擊右上角【添加收藏】快速加入",
+      "StatusIdle": "已停止",
+      "StatusRunning": "運行中",
+      "QueueTitle": "隊列中"
     },
     "AddAlas": {
       "PopupTitle": "添加新的設定",

@@ -20,6 +20,14 @@ Button:
   ClickToUpdate:
   RetryUpdate:
   CancelUpdate:
+  RunNow:
+  Enable:
+  Disable:
+  AddFavorite:
+  CollapseMenu:
+  ExpandMenu:
+  CollapseLog:
+  ExpandLog:
 
 Toast:
   DisableTranslateMode:
@@ -48,9 +56,17 @@ Overview:
   Scheduler:
   Log:
   Running:
+  Favorites:
   Pending:
   Waiting:
+  Disabled:
+  Enabled:
+  RunNowSuccess:
   NoTask:
+  NoFavorite:
+  StatusIdle:
+  StatusRunning:
+  QueueTitle:
 
 AddAlas:
   PopupTitle:
