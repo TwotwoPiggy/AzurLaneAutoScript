@@ -11,27 +11,11 @@
 
 #pywebio-scope-overview {
     grid-auto-flow: column;
-    grid-template-columns: var(--schedulers-width, 24rem) 6px minmax(24rem, 1fr);
+    grid-template-columns: minmax(20rem, 24rem) minmax(24rem, 1fr);
 }
 
-#pywebio-scope-overview-resizer {
-    width: 6px;
-    height: 100%;
-    cursor: col-resize;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    z-index: 10;
-    transition: background-color 0.15s ease;
-}
-
-.overview-resizer-line {
-    width: 2px;
-    height: 36px;
-    border-radius: 1px;
-    background-color: rgba(150, 150, 150, 0.4);
-    pointer-events: none;
+#pywebio-scope-menu.menu-collapsed-pc {
+    display: none !important;
 }
 
 #pywebio-scope-daemon-overview {

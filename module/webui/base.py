@@ -81,6 +81,14 @@ class Frame(Base):
                 put_scope("content"),
             ],
         )
+        run_js(
+            """
+            localStorage.removeItem("alas_menu_collapsed");
+            if (window.innerWidth > 768 && localStorage.getItem("alas_menu_collapsed_pc") === "true") {
+                $("#pywebio-scope-menu").addClass("menu-collapsed-pc");
+            }
+        """
+        )
 
     @staticmethod
     @use_scope("header_title", clear=True)
@@ -93,7 +101,6 @@ class Frame(Base):
             """
             $("#pywebio-scope-menu").addClass("container-menu-collapsed");
             $(".container-content-collapsed").removeClass("container-content-collapsed");
-            localStorage.setItem("alas_menu_collapsed", "true");
         """
         )
 
@@ -101,9 +108,8 @@ class Frame(Base):
     def expand_menu() -> None:
         run_js(
             """
-            $("#pywebio-scope-menu").removeClass("container-menu-collapsed");
+            $(".container-menu-collapsed").removeClass("container-menu-collapsed");
             $("#pywebio-scope-content").addClass("container-content-collapsed");
-            localStorage.setItem("alas_menu_collapsed", "false");
         """
         )
 
@@ -112,14 +118,22 @@ class Frame(Base):
         run_js(
             """
             var $menu = $("#pywebio-scope-menu");
-            if ($menu.hasClass("container-menu-collapsed")) {
-                $menu.removeClass("container-menu-collapsed");
-                $("#pywebio-scope-content").addClass("container-content-collapsed");
-                localStorage.setItem("alas_menu_collapsed", "false");
+            if (window.innerWidth <= 768) {
+                if ($menu.hasClass("container-menu-collapsed")) {
+                    $menu.removeClass("container-menu-collapsed");
+                    $("#pywebio-scope-content").addClass("container-content-collapsed");
+                } else {
+                    $menu.addClass("container-menu-collapsed");
+                    $(".container-content-collapsed").removeClass("container-content-collapsed");
+                }
             } else {
-                $menu.addClass("container-menu-collapsed");
-                $(".container-content-collapsed").removeClass("container-content-collapsed");
-                localStorage.setItem("alas_menu_collapsed", "true");
+                if ($menu.hasClass("menu-collapsed-pc")) {
+                    $menu.removeClass("menu-collapsed-pc");
+                    localStorage.setItem("alas_menu_collapsed_pc", "false");
+                } else {
+                    $menu.addClass("menu-collapsed-pc");
+                    localStorage.setItem("alas_menu_collapsed_pc", "true");
+                }
             }
         """
         )

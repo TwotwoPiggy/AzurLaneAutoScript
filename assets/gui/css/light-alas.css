@@ -153,15 +153,6 @@ pre.rich-traceback-code {
     color: #777777;
 }
 
-#pywebio-scope-overview-resizer:hover,
-#pywebio-scope-overview-resizer.is-dragging {
-    background-color: #4e4c97;
-}
-
-#pywebio-scope-overview-resizer:hover .overview-resizer-line,
-#pywebio-scope-overview-resizer.is-dragging .overview-resizer-line {
-    background-color: white;
-}
 
 /* Dashboard Card Colors (Light Theme) */
 #pywebio-scope-scheduler-bar {

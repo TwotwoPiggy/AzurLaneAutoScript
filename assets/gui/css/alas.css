@@ -561,9 +561,27 @@ pre.rich-traceback-code {
    Modern Dashboard & Collapse Enhancements
    ========================================================================== */
 
-/* Menu collapse support */
-.container-menu-collapsed,
-#pywebio-scope-menu.menu-collapsed {
+/* Disclaimer suppression across dashboard and updater */
+#pywebio-scope-overview .markdown,
+#pywebio-scope-schedulers .markdown,
+#pywebio-scope-scheduler-bar .markdown,
+#pywebio-scope-running .markdown,
+#pywebio-scope-favorites .markdown,
+#pywebio-scope-pending .markdown,
+#pywebio-scope-waiting .markdown,
+#pywebio-scope-disabled .markdown,
+#pywebio-scope-updater_source .markdown,
+#pywebio-scope-card_official .markdown,
+#pywebio-scope-card_custom .markdown {
+    display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+/* PC menu collapse support */
+#pywebio-scope-menu.menu-collapsed-pc {
     display: none !important;
 }
 
@@ -589,8 +607,7 @@ pre.rich-traceback-code {
     grid-template-columns: 1fr !important;
 }
 
-#pywebio-scope-overview.logs-collapsed #pywebio-scope-logs,
-#pywebio-scope-overview.logs-collapsed #pywebio-scope-overview-resizer {
+#pywebio-scope-overview.logs-collapsed #pywebio-scope-logs {
     display: none !important;
 }
 

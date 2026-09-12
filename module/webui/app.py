@@ -245,8 +245,8 @@ class AlasGUI(Frame):
                     onclick=[self.alas_overview],
                 ).style(f"--menu-Overview--"),
                 put_button(
-                    label="⮜",
-                    onclick=self.collapse_menu,
+                    label="«",
+                    onclick=self.toggle_menu,
                     color="menu",
                 ).style("width: 2.2rem; padding: 0.25rem 0; margin-left: auto; text-align: center; border-radius: 4px; font-size: 0.95rem;").style("--btn-menu-collapse--"),
             ],
@@ -516,11 +516,11 @@ class AlasGUI(Frame):
             if ($ov.hasClass("logs-collapsed")) {{
                 $ov.removeClass("logs-collapsed");
                 localStorage.setItem("alas_logs_collapsed", "false");
-                $("div[style*='--btn-toggle-log--']>button").text('{collapse_text}');
+                $("div[style*='--btn-toggle-log--']>button, div[style*='--btn-toggle-log-right--']>button").text('{collapse_text}');
             }} else {{
                 $ov.addClass("logs-collapsed");
                 localStorage.setItem("alas_logs_collapsed", "true");
-                $("div[style*='--btn-toggle-log--']>button").text('{expand_text}');
+                $("div[style*='--btn-toggle-log--']>button, div[style*='--btn-toggle-log-right--']>button").text('{expand_text}');
             }}
             """
         )
@@ -545,22 +545,17 @@ class AlasGUI(Frame):
                         </div>
                     </div>
                     """),
-                    put_scope(
-                        "scheduler-actions",
+                    put_row(
                         [
-                            put_row(
-                                [
-                                    put_scope("scheduler_btn"),
-                                    put_button(
-                                        label=t("Gui.Button.CollapseLog"),
-                                        onclick=self.toggle_logs,
-                                        color="off",
-                                    ).style("padding: .22rem .65rem; font-size: .85rem; border-radius: 4px; margin-left: 0.4rem;").style("--btn-toggle-log--"),
-                                ],
-                                size="auto auto",
-                            ).style("margin: auto 0 auto auto; align-items: center;"),
+                            put_scope("scheduler_btn"),
+                            put_button(
+                                label=t("Gui.Button.CollapseLog"),
+                                onclick=self.toggle_logs,
+                                color="off",
+                            ).style("padding: .22rem .65rem; font-size: .85rem; border-radius: 4px; margin-left: 0.4rem;").style("--btn-toggle-log--"),
                         ],
-                    ),
+                        size="auto auto",
+                    ).style("margin: auto 0 auto auto; align-items: center;"),
                 ],
             )
             put_scope(
@@ -679,17 +674,12 @@ class AlasGUI(Frame):
                     put_scope(
                         "log-bar-btns",
                         [
-                            put_row(
-                                [
-                                    put_scope("log_scroll_btn"),
-                                    put_button(
-                                        label=t("Gui.Button.CollapseLog"),
-                                        onclick=self.toggle_logs,
-                                        color="off",
-                                    ).style("padding: .22rem .65rem; font-size: .85rem; border-radius: 4px; margin-left: 0.4rem;"),
-                                ],
-                                size="auto auto",
-                            ).style("align-items: center;"),
+                            put_scope("log_scroll_btn"),
+                            put_button(
+                                label=t("Gui.Button.CollapseLog"),
+                                onclick=self.toggle_logs,
+                                color="off",
+                            ).style("padding: .22rem .65rem; font-size: .85rem; border-radius: 4px; margin-left: 0.4rem;").style("--btn-toggle-log-right--"),
                         ],
                     ),
                 ],
@@ -718,15 +708,22 @@ class AlasGUI(Frame):
         expand_text = t("Gui.Button.ExpandLog")
         run_js(
             f"""
+            localStorage.removeItem("alas_menu_collapsed");
             if (localStorage.getItem("alas_logs_collapsed") === "true") {{
                 $("#pywebio-scope-overview").addClass("logs-collapsed");
-                $("div[style*='--btn-toggle-log--']>button").text('{expand_text}');
+                $("div[style*='--btn-toggle-log--']>button, div[style*='--btn-toggle-log-right--']>button").text('{expand_text}');
             }} else {{
-                $("div[style*='--btn-toggle-log--']>button").text('{collapse_text}');
+                $("div[style*='--btn-toggle-log--']>button, div[style*='--btn-toggle-log-right--']>button").text('{collapse_text}');
             }}
-            if (localStorage.getItem("alas_menu_collapsed") === "true") {{
-                $("#pywebio-scope-menu").addClass("container-menu-collapsed");
+            if (window.innerWidth > 768 && localStorage.getItem("alas_menu_collapsed_pc") === "true") {{
+                $("#pywebio-scope-menu").addClass("menu-collapsed-pc");
+            }} else {{
+                $("#pywebio-scope-menu").removeClass("menu-collapsed-pc");
             }}
+            $('#pywebio-scope-overview, #pywebio-scope-updater_source').find('*').filter(function() {{
+                var txt = $(this).text();
+                return (txt.indexOf('paid for Alas') !== -1 || txt.indexOf('如果你在任何渠道付费购买') !== -1) && $(this).children('div, p').length === 0;
+            }}).closest('.markdown, div[style*="text-align: center"], p').remove();
             """
         )
 
