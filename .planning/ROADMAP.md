@@ -56,7 +56,10 @@
   2. 任务交接与出击结算处执行模版/OCR 缓存清理与软 gc.collect()
   3. 引入 Win32 EmptyWorkingSet 接口在空闲时主动修剪未引用物理工作集，缓解 15.8GB 虚拟内存换页压力
   4. 多进程调度器对子进程 RSS 实施巡检看门狗，在任务安全点自愈异常泄漏进程
-**Plans**: TBD
+**Plans**:
+  - [ ] 04-01-PLAN.md — 错误截图队列 JPEG 内存流高倍压缩与回溯容量控制 (MEM-01)
+  - [ ] 04-02-PLAN.md — Win32 物理工作集修剪工具封装与任务边界 GC 闭环 (MEM-02, MEM-03)
+  - [ ] 04-03-PLAN.md — 多进程调度器子进程 RSS 巡检看门狗与安全自愈 (MEM-04)
 
 ### Phase 5: 弱机与模拟器协同最佳配置
 **Goal**: 输出软硬件协同最佳配置指南，确保系统级调优落地
@@ -78,5 +81,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Electron 桌面端轻量化与 GPU 保护 | 0/0 | Not started | - |
 | 2. WebUI 前端与日志流控 | 0/0 | Not started | - |
 | 3. Python 自动化核心能效与通讯调优 | 0/0 | Not started | - |
-| 4. 7×24 小时挂机内存守护与防泄漏 | 0/0 | In progress | - |
+| 4. 7×24 小时挂机内存守护与防泄漏 | 0/3 | In progress | - |
 | 5. 弱机与模拟器协同最佳配置 | 0/0 | Not started | - |
