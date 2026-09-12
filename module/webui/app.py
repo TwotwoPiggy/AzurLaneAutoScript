@@ -1632,7 +1632,8 @@ class AlasGUI(Frame):
         self.set_aside()
         self.init_aside(name="Home")
         self.dev_set_menu()
-        self.init_menu(name="HomePage")
+        self.init_menu(collapse_menu=False, name="HomePage")
+        self.expand_menu()
         self.alas_name = ""
         if hasattr(self, "alas"):
             del self.alas
