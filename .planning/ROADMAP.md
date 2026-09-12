@@ -92,7 +92,10 @@
   2. 提供 MuMu 12 性能（核数、帧率、关闭后台保活）调优参数指导
   3. 提供低配平台虚拟内存与 TDR 防护调优建议
 
-**Plans**: TBD
+**Plans**: 1/2 plans executed
+
+- [x] 05-01-PLAN.md
+- [ ] 05-02-PLAN.md
 
 ## Progress
 
@@ -105,4 +108,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. WebUI 前端与日志流控 | 0/0 | Not started | - |
 | 3. Python 自动化核心能效与通讯调优 | 0/0 | Not started | - |
 | 4. 7×24 小时挂机内存守护与防泄漏 | 3/3 | Completed | 2026-09-12 |
-| 5. 弱机与模拟器协同最佳配置 | 0/0 | Not started | - |
+| 5. 弱机与模拟器协同最佳配置 | 1/2 | In Progress|  |
