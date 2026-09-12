@@ -527,6 +527,8 @@ class AlasGUI(Frame):
 
     @use_scope("content", clear=True)
     def alas_overview(self) -> None:
+        if not hasattr(self, "alas"):
+            return
         self.init_menu(name="Overview")
         self.set_title(t(f"Gui.MenuAlas.Overview"))
 
@@ -794,6 +796,8 @@ class AlasGUI(Frame):
     def alas_update_overview_task(self) -> None:
         if not self.visible:
             return
+        if not hasattr(self, "alas"):
+            return
         self.alas_config.load()
         self.alas_config.get_next_task()
 
@@ -936,6 +940,8 @@ class AlasGUI(Frame):
 
     @use_scope("content", clear=True)
     def alas_daemon_overview(self, task: str) -> None:
+        if not hasattr(self, "alas"):
+            return
         self.init_menu(name=task)
         self.set_title(t(f"Task.{task}.name"))
 
