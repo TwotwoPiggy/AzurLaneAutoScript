@@ -572,12 +572,24 @@ pre.rich-traceback-code {
 #pywebio-scope-disabled .markdown,
 #pywebio-scope-updater_source .markdown,
 #pywebio-scope-card_official .markdown,
-#pywebio-scope-card_custom .markdown {
+#pywebio-scope-card_custom .markdown,
+#pywebio-scope-overview [style*="text-align: center"],
+#pywebio-scope-overview [style*="text-align:center"],
+#pywebio-scope-schedulers [style*="text-align: center"],
+#pywebio-scope-schedulers [style*="text-align:center"],
+#pywebio-scope-updater_source [style*="text-align: center"],
+#pywebio-scope-updater_source [style*="text-align:center"] {
     display: none !important;
     height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
     overflow: hidden !important;
+}
+
+*[style*="--section-title--"] {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0.6rem 0.45rem 0.35rem;
 }
 
 /* PC menu collapse support */

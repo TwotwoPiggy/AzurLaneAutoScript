@@ -536,15 +536,9 @@ class AlasGUI(Frame):
             put_scope(
                 "scheduler-bar",
                 [
-                    put_html(f"""
-                    <div class="scheduler-title-wrap">
-                        <span style="font-size: 1.2rem; font-weight: 600;">{t("Gui.Overview.Scheduler")}</span>
-                        <div id="scheduler-status-indicator" class="scheduler-status-badge status-idle">
-                            <span class="status-dot status-dot-idle"></span>
-                            <span class="status-text">{t("Gui.Overview.StatusIdle")}</span>
-                        </div>
-                    </div>
-                    """),
+                    put_text(t("Gui.Overview.Scheduler")).style(
+                        "font-size: 1.25rem; font-weight: 600; margin: auto .5rem auto 0;"
+                    ),
                     put_row(
                         [
                             put_scope("scheduler_btn"),
@@ -561,14 +555,7 @@ class AlasGUI(Frame):
             put_scope(
                 "running",
                 [
-                    put_html(f"""
-                    <div class="section-header-wrap">
-                        <div class="section-title-box">
-                            <span class="section-title-text">{t("Gui.Overview.Running")}</span>
-                            <span id="badge-running-count" class="task-count-badge">0</span>
-                        </div>
-                    </div>
-                    """),
+                    put_text(t("Gui.Overview.Running")).style("--section-title--"),
                     put_scope("running_tasks"),
                 ],
             )
@@ -577,12 +564,7 @@ class AlasGUI(Frame):
                 [
                     put_row(
                         [
-                            put_html(f"""
-                            <div class="section-title-box">
-                                <span class="section-title-text">{t("Gui.Overview.Favorites")}</span>
-                                <span id="badge-favorites-count" class="task-count-badge">0</span>
-                            </div>
-                            """),
+                            put_text(t("Gui.Overview.Favorites")).style("--section-title--").style("margin: 0 !important;"),
                             put_button(
                                 label=t("Gui.Button.AddFavorite"),
                                 onclick=self.alas_popup_add_favorite,
@@ -597,28 +579,14 @@ class AlasGUI(Frame):
             put_scope(
                 "pending",
                 [
-                    put_html(f"""
-                    <div class="section-header-wrap">
-                        <div class="section-title-box">
-                            <span class="section-title-text">{t("Gui.Overview.QueueTitle")}</span>
-                            <span id="badge-pending-count" class="task-count-badge">0</span>
-                        </div>
-                    </div>
-                    """),
+                    put_text(t("Gui.Overview.QueueTitle")).style("--section-title--"),
                     put_scope("pending_tasks"),
                 ],
             )
             put_scope(
                 "waiting",
                 [
-                    put_html(f"""
-                    <div class="section-header-wrap">
-                        <div class="section-title-box">
-                            <span class="section-title-text">{t("Gui.Overview.Waiting")}</span>
-                            <span id="badge-waiting-count" class="task-count-badge">0</span>
-                        </div>
-                    </div>
-                    """),
+                    put_text(t("Gui.Overview.Waiting")).style("--section-title--"),
                     put_scope("waiting_tasks"),
                 ],
             )
@@ -720,10 +688,9 @@ class AlasGUI(Frame):
             }} else {{
                 $("#pywebio-scope-menu").removeClass("menu-collapsed-pc");
             }}
-            $('#pywebio-scope-overview, #pywebio-scope-updater_source').find('*').filter(function() {{
-                var txt = $(this).text();
-                return (txt.indexOf('paid for Alas') !== -1 || txt.indexOf('如果你在任何渠道付费购买') !== -1) && $(this).children('div, p').length === 0;
-            }}).closest('.markdown, div[style*="text-align: center"], p').remove();
+            if (window.purgeAlasDisclaimers) {{
+                window.purgeAlasDisclaimers();
+            }}
             """
         )
 
@@ -847,12 +814,13 @@ class AlasGUI(Frame):
                     time_str = str(func.next_run)
 
                 task_name = t(f"Task.{func.command}.name")
-                put_html(f"""
-                <div class="task-meta-box">
-                    <div class="task-meta-title" title="{task_name}">{task_name}</div>
-                    <div class="task-meta-time"><span style="opacity:0.7;">{time_icon}</span><span>{time_str}</span></div>
-                </div>
-                """)
+                put_column(
+                    [
+                        put_text(task_name).style("--arg-title--"),
+                        put_text(f"{time_icon}{time_str}").style("--arg-help--"),
+                    ],
+                    size="auto auto",
+                )
 
                 btns = []
                 if status in ("waiting", "pending"):
@@ -907,7 +875,7 @@ class AlasGUI(Frame):
                 for task in running:
                     put_task(task, status="running", is_favorite=(task.command in fav_commands), prefix="run")
             else:
-                put_html(f'<div class="overview-empty-box">{t("Gui.Overview.NoTask")}</div>')
+                put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
 
         with use_scope("favorite_tasks"):
             if fav_commands:
@@ -930,35 +898,28 @@ class AlasGUI(Frame):
                         status = "disabled"
                     put_task(func, status=status, is_favorite=True, prefix="fav")
             else:
-                put_html(f'<div class="overview-empty-box">{t("Gui.Overview.NoFavorite")}</div>')
+                put_text(t("Gui.Overview.NoFavorite")).style("--overview-notask-text--")
 
         with use_scope("pending_tasks"):
             if pending:
                 for task in pending:
                     put_task(task, status="pending", is_favorite=(task.command in fav_commands), prefix="pen")
             else:
-                put_html(f'<div class="overview-empty-box">{t("Gui.Overview.NoTask")}</div>')
+                put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
 
         with use_scope("waiting_tasks"):
             if waiting:
                 for task in waiting:
                     put_task(task, status="waiting", is_favorite=(task.command in fav_commands), prefix="wait")
             else:
-                put_html(f'<div class="overview-empty-box">{t("Gui.Overview.NoTask")}</div>')
+                put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
 
         with use_scope("disabled_tasks"):
             if disabled:
                 for task in disabled:
                     put_task(task, status="disabled", is_favorite=(task.command in fav_commands), prefix="dis")
             else:
-                put_html(f'<div class="overview-empty-box">{t("Gui.Overview.NoTask")}</div>')
-
-        run_js(f"""
-        $('#badge-running-count').text('{len(running)}');
-        $('#badge-favorites-count').text('{len(fav_commands)}');
-        $('#badge-pending-count').text('{len(pending)}');
-        $('#badge-waiting-count').text('{len(waiting)}');
-        """)
+                put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
 
     @use_scope("content", clear=True)
     def alas_daemon_overview(self, task: str) -> None:
@@ -1740,6 +1701,43 @@ class AlasGUI(Frame):
                 )
             }
         );
+
+        (function() {
+            function purgeDisclaimers() {
+                if ($('button.btn-aside-Home.btn-aside-active').length) {
+                    return;
+                }
+                var content = document.getElementById('pywebio-scope-content');
+                if (!content) return;
+                $('#pywebio-scope-content .markdown').filter(function() {
+                    var t = $(this).text();
+                    return t.indexOf('paid for Alas') !== -1 || t.indexOf('如果你在任何渠道付费购买') !== -1 || t.indexOf('请退款') !== -1;
+                }).remove();
+                var walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null, false);
+                var toRemove = [];
+                var node;
+                while (node = walker.nextNode()) {
+                    var val = node.nodeValue;
+                    if (val && (val.indexOf('paid for Alas') !== -1 || val.indexOf('如果你在任何渠道付费购买') !== -1 || val.indexOf('请退款') !== -1 || val.indexOf('免费开源软件') !== -1)) {
+                        toRemove.push(node);
+                    }
+                }
+                for (var i = 0; i < toRemove.length; i++) {
+                    var n = toRemove[i];
+                    if (n.parentNode && n.parentNode.nodeName === 'P' && n.parentNode.childNodes.length === 1) {
+                        n.parentNode.remove();
+                    } else if (n.parentNode) {
+                        n.parentNode.removeChild(n);
+                    }
+                }
+            }
+            window.purgeAlasDisclaimers = purgeDisclaimers;
+            if (!window._alas_disclaimer_observer) {
+                window._alas_disclaimer_observer = new MutationObserver(purgeDisclaimers);
+                window._alas_disclaimer_observer.observe(document.body, {childList: true, subtree: true});
+            }
+            purgeDisclaimers();
+        })();
         """
         )
 
