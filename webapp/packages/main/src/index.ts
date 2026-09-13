@@ -12,7 +12,10 @@ if (!isSingleInstance) {
   process.exit(0);
 }
 
-app.disableHardwareAcceleration();
+// DESK-01 & DESK-04: 移除全局软件光栅化，定向优先使用低功耗集成显卡（Intel HD 4600），并限制 V8 堆内存
+app.commandLine.appendSwitch('force_low_power_gpu', 'true');
+app.commandLine.appendSwitch('disable-gpu-process-crash-limit');
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=128');
 
 // Install "Vue.js devtools"
 if (import.meta.env.MODE === 'development') {
@@ -70,7 +73,19 @@ const createWindow = async () => {
     }
   });
 
+  // DESK-02: 动态帧率调控与后台节能
+  const applyFrameRate = (fps: number) => {
+    try {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.setFrameRate(fps);
+      }
+    } catch (e) {
+      console.warn('Failed to set frame rate:', e);
+    }
+  };
+
   mainWindow.on('focus', function () {
+    applyFrameRate(60);
     // Dev tools
     globalShortcut.register('Ctrl+Shift+I', function () {
       if (mainWindow?.webContents.isDevToolsOpened()) {
@@ -87,13 +102,47 @@ const createWindow = async () => {
       mainWindow?.reload()
     });
   });
+
   mainWindow.on('blur', function () {
-    globalShortcut.unregisterAll()
+    globalShortcut.unregisterAll();
+    // 窗口失焦时降频至 5 FPS，消除后台无谓渲染能耗
+    applyFrameRate(5);
+  });
+
+  mainWindow.on('minimize', function () {
+    // 窗口最小化时降频至 1 FPS，极致降低 CPU 与显存活动
+    applyFrameRate(1);
+  });
+
+  mainWindow.on('restore', function () {
+    applyFrameRate(30);
+  });
+
+  mainWindow.on('hide', function () {
+    applyFrameRate(1);
+  });
+
+  mainWindow.on('show', function () {
+    applyFrameRate(30);
+  });
+
+  // DESK-03: 渲染进程崩溃与白屏容灾平滑重启
+  mainWindow.webContents.on('render-process-gone', (event, details) => {
+    console.error(`Electron render process gone: ${details.reason}, exitCode: ${details.exitCode}`);
+    if (details.reason !== 'clean-exit') {
+      setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          console.info('Attempting to reload main window after render process crash...');
+          loadURL();
+        }
+      }, 1500);
+    }
   });
 
   // Minimize, maximize, close window.
   ipcMain.on('window-tray', function () {
     mainWindow?.hide();
+    applyFrameRate(1);
   });
   ipcMain.on('window-min', function () {
     mainWindow?.minimize();
@@ -194,6 +243,19 @@ app.on('window-all-closed', () => {
   }
 });
 
+
+// DESK-03: 监听 GPU 进程崩溃与容灾降级，避免崩溃导致 Alas 强制退出
+let gpuCrashCount = 0;
+app.on('child-process-gone', (event, details) => {
+  if (details.type === 'GPU') {
+    gpuCrashCount++;
+    console.warn(`Electron GPU process crashed (${details.reason}), count: ${gpuCrashCount}`);
+    if (gpuCrashCount > 3) {
+      console.error('GPU process crashed repeatedly (>3), safe fallback to software rasterization.');
+      app.disableHardwareAcceleration();
+    }
+  }
+});
 
 app.whenReady()
   .then(createWindow)
