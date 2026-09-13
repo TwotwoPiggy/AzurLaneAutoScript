@@ -111,12 +111,21 @@ class RichLog:
         # print(html)
         return html
 
-    def extend(self, text):
+    def extend(self, text, max_dom_nodes=150):
+        # WEB-02: 实施前端 DOM 节点上限滑动截断（默认 150 条），配合 overflow-anchor: none 杜绝 7×24h DOM 膨胀
         if text:
             run_js(
-                """$("#pywebio-scope-{scope}>div").append(text);
-            """.format(
-                    scope=self.scope
+                """
+                var container = $("#pywebio-scope-{scope}>div");
+                container.css("overflow-anchor", "none");
+                container.append(text);
+                var children = container.children();
+                if (children.length > {max_nodes}) {{
+                    children.slice(0, children.length - {max_nodes}).remove();
+                }}
+                """.format(
+                    scope=self.scope,
+                    max_nodes=max_dom_nodes,
                 ),
                 text=str(text),
             )
@@ -157,46 +166,35 @@ class RichLog:
         width = eval_js(js)
         return 80 if width is None else 128 if width > 128 else int(width)
 
-    # def _register_resize_callback(self):
-    #     js = """
-    #     WebIO.pushData(
-    #         ($('#pywebio-scope-log').width()-16)/$('#pywebio-scope-log').css('font-size').slice(0, -2)/0.55,
-    #         {callback_id}
-    #     )""".format(callback_id=self.callback_id)
-
-    # def _callback_set_width(self, width):
-    #     self._width = width
-    #     if self._callback_thread is None:
-    #         self._callback_thread = Thread(target=self._callback_width_checker)
-    #         self._callback_thread.start()
-
-    # def _callback_width_checker(self):
-    #     last_modify = time.time()
-    #     _width = self._width
-    #     while True:
-    #         if time.time() - last_modify > 1:
-    #             break
-    #         if self._width == _width:
-    #             time.sleep(0.1)
-    #             continue
-    #         else:
-    #             _width = self._width
-    #             last_modify = time.time()
-
-    #     self._callback_thread = None
-    #     self.console.width = int(_width)
-
-    def put_log(self, pm: ProcessManager) -> Generator:
+    def put_log(self, pm: ProcessManager, is_visible: Optional[Callable[[], bool]] = None) -> Generator:
         yield
         try:
+            was_hidden = False
             while True:
+                # 初始与重置时仅渲染最新 150 条
+                recent_logs = pm.renderables[-150:] if len(pm.renderables) > 150 else pm.renderables[:]
                 last_idx = len(pm.renderables)
-                html = "".join(map(self.render, pm.renderables[:]))
+                html = "".join(map(self.render, recent_logs))
                 self.reset()
                 self.extend(html)
                 counter = last_idx
                 while counter < pm.renderables_max_length * 2:
                     yield
+                    # WEB-01: 可见性门禁，网页隐藏或后台时不向前端追加渲染日志
+                    if is_visible is not None and not is_visible():
+                        was_hidden = True
+                        continue
+                    elif was_hidden:
+                        # WEB-03: 页面从后台重新激活时执行单次快照补偿渲染（Catch-Up）
+                        was_hidden = False
+                        recent_logs = pm.renderables[-150:] if len(pm.renderables) > 150 else pm.renderables[:]
+                        html = "".join(map(self.render, recent_logs))
+                        self.reset()
+                        self.extend(html)
+                        last_idx = len(pm.renderables)
+                        counter = last_idx
+                        continue
+
                     idx = len(pm.renderables)
                     if idx < last_idx:
                         last_idx -= pm.renderables_reduce_length

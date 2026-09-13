@@ -684,8 +684,11 @@ class AlasGUI(Frame):
 
         self.task_handler.add(switch_scheduler.g(), 1, True)
         self.task_handler.add(switch_log_scroll.g(), 1, True)
-        self.task_handler.add(self.alas_update_overview_task, 10, True)
-        self.task_handler.add(log.put_log(self.alas), 0.25, True)
+        self.task_handler.add(
+            log.put_log(self.alas, is_visible=lambda: getattr(self, "visible", True)),
+            0.25,
+            True,
+        )
 
         collapse_text = t("Gui.Button.CollapseLog")
         expand_text = t("Gui.Button.ExpandLog")
@@ -1047,8 +1050,11 @@ class AlasGUI(Frame):
         )
 
         self.task_handler.add(switch_scheduler.g(), 1, True)
-        self.task_handler.add(switch_log_scroll.g(), 1, True)
-        self.task_handler.add(log.put_log(self.alas), 0.25, True)
+        self.task_handler.add(
+            log.put_log(self.alas, is_visible=lambda: getattr(self, "visible", True)),
+            0.25,
+            True,
+        )
 
     @use_scope("menu", clear=True)
     def dev_set_menu(self) -> None:
@@ -1817,6 +1823,15 @@ class AlasGUI(Frame):
         self.task_handler.add(self.set_aside_status, 2)
         self.task_handler.add(visibility_state_switch.g(), 15)
         self.task_handler.add(update_switch.g(), 1)
+
+        # WEB-04: 30s 轻量心跳，防范 WebSocket 1006 异常断开
+        def _ws_heartbeat():
+            try:
+                eval_js("1")
+            except Exception:
+                pass
+
+        self.task_handler.add(_ws_heartbeat, 30)
         self.task_handler.start()
 
         # Return to previous page
