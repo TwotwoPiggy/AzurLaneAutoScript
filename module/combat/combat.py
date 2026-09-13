@@ -556,77 +556,96 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
         """
         logger.info('Combat status')
         logger.attr('expected_end', expected_end.__name__ if callable(expected_end) else expected_end)
-        self.device.screenshot_interval_set()
+        # CORE-01: 战斗自律稳态阶段主循环休眠放宽至 1.0~1.2s，大幅削减 CPU 空转
+        self.device.screenshot_interval_set('combat')
         self.device.stuck_record_clear()
         self.device.click_record_clear()
         battle_status = False
         exp_info = False  # This is for the white screen bug in game
-        for _ in self.loop():
+        try:
+            for _ in self.loop():
 
-            # Expected end
-            if isinstance(expected_end, str):
-                if expected_end == 'in_stage' and self.handle_in_stage():
-                    break
-                if expected_end == 'with_searching' and self.handle_in_map_with_enemy_searching(drop=drop):
-                    break
-                if expected_end == 'no_searching' and self.handle_in_map_no_enemy_searching(drop=drop):
-                    break
-                if expected_end == 'in_ui' and self.appear(BACK_ARROW, offset=(30, 30)):
-                    break
-            if callable(expected_end):
-                if expected_end():
-                    break
+                # Expected end
+                if isinstance(expected_end, str):
+                    if expected_end == 'in_stage' and self.handle_in_stage():
+                        break
+                    if expected_end == 'with_searching' and self.handle_in_map_with_enemy_searching(drop=drop):
+                        break
+                    if expected_end == 'no_searching' and self.handle_in_map_no_enemy_searching(drop=drop):
+                        break
+                    if expected_end == 'in_ui' and self.appear(BACK_ARROW, offset=(30, 30)):
+                        break
+                if callable(expected_end):
+                    if expected_end():
+                        break
 
-            if self.handle_story_skip(drop=drop):
-                continue
-            # Combat status
-            if not exp_info and self.handle_get_ship(drop=drop):
-                continue
-            if self.handle_get_items(drop=drop):
-                continue
-            if self.handle_popup_confirm('COMBAT_STATUS'):
-                if battle_status and not exp_info:
-                    logger.info('Locking a new ship')
-                    self.config.GET_SHIP_TRIGGERED = True
-                continue
-            if not battle_status:
-                if not exp_info and self.handle_battle_status(drop=drop):
-                    battle_status = True
+                if self.handle_story_skip(drop=drop):
+                    self.device.screenshot_interval_reset()
                     continue
-                if self.handle_exp_info():
-                    exp_info = True
+                # Combat status
+                if not exp_info and self.handle_get_ship(drop=drop):
+                    self.device.screenshot_interval_reset()
                     continue
-            else:
-                # Check exp_info first if battle_status has been clicked.
-                if self.handle_exp_info():
-                    exp_info = True
+                if self.handle_get_items(drop=drop):
+                    self.device.screenshot_interval_reset()
                     continue
-                if not exp_info and self.handle_battle_status(drop=drop):
-                    battle_status = True
+                if self.handle_popup_confirm('COMBAT_STATUS'):
+                    self.device.screenshot_interval_reset()
+                    if battle_status and not exp_info:
+                        logger.info('Locking a new ship')
+                        self.config.GET_SHIP_TRIGGERED = True
                     continue
-            # bunch of popup handlers
-            if self.handle_popup_confirm('COMBAT_STATUS'):
-                continue
-            if self.handle_urgent_commission(drop=drop):
-                continue
-            if self.handle_guild_popup_cancel():
-                continue
-            if self.handle_vote_popup():
-                continue
-            if self.handle_mission_popup_ack():
-                continue
-            # additional handlers in combat
-            if self.handle_auto_search_exit(drop=drop):
-                continue
-            if self.handle_combat_mis_click():
-                continue
+                if not battle_status:
+                    if not exp_info and self.handle_battle_status(drop=drop):
+                        self.device.screenshot_interval_reset()
+                        battle_status = True
+                        continue
+                    if self.handle_exp_info():
+                        self.device.screenshot_interval_reset()
+                        exp_info = True
+                        continue
+                else:
+                    # Check exp_info first if battle_status has been clicked.
+                    if self.handle_exp_info():
+                        self.device.screenshot_interval_reset()
+                        exp_info = True
+                        continue
+                    if not exp_info and self.handle_battle_status(drop=drop):
+                        self.device.screenshot_interval_reset()
+                        battle_status = True
+                        continue
+                # bunch of popup handlers
+                if self.handle_popup_confirm('COMBAT_STATUS'):
+                    self.device.screenshot_interval_reset()
+                    continue
+                if self.handle_urgent_commission(drop=drop):
+                    self.device.screenshot_interval_reset()
+                    continue
+                if self.handle_guild_popup_cancel():
+                    self.device.screenshot_interval_reset()
+                    continue
+                if self.handle_vote_popup():
+                    self.device.screenshot_interval_reset()
+                    continue
+                if self.handle_mission_popup_ack():
+                    self.device.screenshot_interval_reset()
+                    continue
+                # additional handlers in combat
+                if self.handle_auto_search_exit(drop=drop):
+                    self.device.screenshot_interval_reset()
+                    continue
+                if self.handle_combat_mis_click():
+                    self.device.screenshot_interval_reset()
+                    continue
 
-            # End
-            if self.handle_in_stage():
-                break
-            if expected_end is None:
-                if self.handle_in_map_with_enemy_searching(drop=drop):
+                # End
+                if self.handle_in_stage():
                     break
+                if expected_end is None:
+                    if self.handle_in_map_with_enemy_searching(drop=drop):
+                        break
+        finally:
+            self.device.screenshot_interval_set()
 
     def combat(self, balance_hp=None, emotion_reduce=None, auto_mode=None, submarine_mode=None,
                save_get_items=None, expected_end=None, fleet_index=1):

@@ -306,23 +306,37 @@ class ModuleBase:
         return appear
 
     def wait_until_appear(self, button, offset=0, skip_first_screenshot=False):
+        counter = 0
         while 1:
             if skip_first_screenshot:
                 skip_first_screenshot = False
             else:
                 self.device.screenshot()
             if self.appear(button, offset=offset):
+                if counter > 0 and hasattr(self.device, "screenshot_interval_reset"):
+                    self.device.screenshot_interval_reset()
                 break
+            counter += 1
+            # CORE-04: 画面静态阶段（长 Loading、黑屏转场）引入轻量特征退避，降低 CPU 空转
+            if counter > 5 and hasattr(self.device, "sleep"):
+                self.device.sleep(0.3)
 
     def wait_until_appear_then_click(self, button, offset=0):
         self.wait_until_appear(button, offset=offset)
         self.device.click(button)
 
     def wait_until_disappear(self, button, offset=0):
+        counter = 0
         while 1:
             self.device.screenshot()
             if not self.appear(button, offset=offset):
+                if counter > 0 and hasattr(self.device, "screenshot_interval_reset"):
+                    self.device.screenshot_interval_reset()
                 break
+            counter += 1
+            # CORE-04: 长等待消失自适应退避
+            if counter > 5 and hasattr(self.device, "sleep"):
+                self.device.sleep(0.3)
 
     def wait_until_stable(self, button, timer=Timer(0.3, count=1), timeout=Timer(5, count=10), skip_first_screenshot=True):
         button._match_init = False

@@ -262,31 +262,20 @@ class WorkerThread:
 
     def kill(self):
         """
-        Yes, it's unsafe to kill a thread, but what else can you do
-        if a single job function get blocked.
-        This method should be protected by `job.put_lock` to prevent
-        race condition with `_handle_job()`.
+        CORE-03: 安全解绑并淘汰超时工作者线程，废除暴力使用 PyThreadState_SetAsyncExc
+        注入异步异常以防 C 运行时堆栈踩踏和 RPC 1722 崩溃。
 
         Returns:
-            bool: If success to kill the thread
+            bool: Always True on graceful detach
         """
-        # Send SystemExit to thread
-        thread_id = ctypes.c_long(self.thread.ident)
-        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
-            thread_id, ctypes.py_object(_JobKill))
-        if res <= 1:
-            self.thread_pool.all_workers.pop(self, None)
-            self.thread_pool.release_full_lock()
-            return True
-        else:
-            try:
-                job = self.job
-            except AttributeError:
-                job = None
-            logger.error(f'Failed to kill thread {self.thread.ident} from job {job}')
-            # Failed to send SystemExit, reset it
-            ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
-            return False
+        self.thread_pool.all_workers.pop(self, None)
+        self.thread_pool.release_full_lock()
+        try:
+            job = self.job
+        except AttributeError:
+            job = None
+        logger.warning(f'Worker thread {self.thread.ident} for job {job} timed out, gracefully detached from pool')
+        return True
 
 
 class WorkerPool:

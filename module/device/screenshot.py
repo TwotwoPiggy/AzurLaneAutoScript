@@ -186,10 +186,13 @@ class Screenshot(Adb, WSA, DroidCast, AScreenCap, Scrcpy, NemuIpc, LDOpenGL):
                 interval = limit_in(origin, 0.1, 0.2)
         elif interval == 'combat':
             origin = self.config.Optimization_CombatScreenshotInterval
-            interval = limit_in(origin, 0.3, 1.0)
+            interval = limit_in(origin, 0.3, 1.2)
             if interval != origin:
                 logger.warning(f'Optimization.CombatScreenshotInterval {origin} is revised to {interval}')
                 self.config.Optimization_CombatScreenshotInterval = interval
+            # CORE-01: 稳态自律战斗默认放宽至 1.0~1.2s，大幅缩减无效空转与 CPU 占用
+            if interval < 1.0:
+                interval = 1.0
         elif isinstance(interval, (int, float)):
             # No limitation for manual set in code
             pass
@@ -204,6 +207,12 @@ class Screenshot(Adb, WSA, DroidCast, AScreenCap, Scrcpy, NemuIpc, LDOpenGL):
         if interval != self._screenshot_interval.limit:
             logger.info(f'Screenshot interval set to {interval}s')
             self._screenshot_interval.limit = interval
+
+    def screenshot_interval_reset(self):
+        """
+        CORE-01: 交互命中瞬间 0ms 唤醒，立即重置下一次截图等待
+        """
+        self._screenshot_interval.reset()
 
     def image_show(self, image=None):
         if image is None:
