@@ -1,6 +1,7 @@
 import sys
 import unittest
 from unittest.mock import MagicMock, patch
+from PIL import ImageDraw, Image
 
 for mod_name in ['uiautomator2', 'adbutils', 'adbutils.errors', 'uiautomator2cache']:
     if mod_name not in sys.modules:
