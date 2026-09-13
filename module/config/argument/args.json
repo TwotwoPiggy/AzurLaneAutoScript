@@ -195,7 +195,7 @@
       },
       "ScreenshotLength": {
         "type": "input",
-        "value": 60
+        "value": 20
       }
     },
     "Optimization": {

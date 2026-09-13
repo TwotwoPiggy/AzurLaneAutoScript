@@ -146,23 +146,19 @@ class AzurLaneAutoScript:
         from module.base.memory_utils import get_process_rss, trim_memory
         from module.base.resource import release_resources
 
+        # Proactively release resources and trim working set at task boundary
+        release_resources()
+
         rss = get_process_rss()
         recycle_needed = False
 
-        # Stage 1 & 2: Two-stage memory leak check (D-09)
-        if rss > 600 * 1024 * 1024:
-            logger.warning(f'High memory usage detected ({rss / 1024 / 1024:.1f}MB > 600MB). Trimming memory...')
-            release_resources()
-            trim_memory()
-            rss_after = get_process_rss()
-            if rss_after > 500 * 1024 * 1024:
-                logger.warning(
-                    f'Memory remains high after trimming ({rss_after / 1024 / 1024:.1f}MB > 500MB). '
-                    'Safe recycling triggered.'
-                )
-                recycle_needed = True
-            else:
-                logger.info(f'Memory successfully trimmed to {rss_after / 1024 / 1024:.1f}MB')
+        # Memory check: if RSS remains high after release_resources() (D-09)
+        if rss > 300 * 1024 * 1024:
+            logger.warning(
+                f'Memory remains high after task completion ({rss / 1024 / 1024:.1f}MB > 300MB). '
+                'Safe recycling triggered.'
+            )
+            recycle_needed = True
 
         # Check 2: 48h aging check during night window (D-12)
         if not recycle_needed:
@@ -196,15 +192,17 @@ class AzurLaneAutoScript:
             folder = f'./log/error/{int(time.time() * 1000)}'
             logger.warning(f'Saving error: {folder}')
             os.mkdir(folder)
+            import cv2
             for data in self.device.screenshot_deque:
                 image_time = datetime.strftime(data['time'], '%Y-%m-%d_%H-%M-%S-%f')
                 image_bytes = data.get('image_bytes')
                 if image_bytes is not None:
                     with open(f'{folder}/{image_time}.jpg', 'wb') as f:
                         f.write(image_bytes)
-                else:
+                elif data.get('image') is not None:
                     image = handle_sensitive_image(data['image'])
-                    save_image(image, f'{folder}/{image_time}.png')
+                    bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                    cv2.imwrite(f'{folder}/{image_time}.jpg', bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
             with open(logger.log_file, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
                 start = 0
@@ -562,11 +560,13 @@ class AzurLaneAutoScript:
                 logger.info(f'Wait until {task.next_run} for task `{task.command}`')
                 self.is_first_task = False
                 method = self.config.Optimization_WhenTaskQueueEmpty
+                from module.base.memory_utils import trim_memory
                 if method == 'close_game':
                     logger.info('Close game during wait')
                     self.device.app_stop()
                     release_resources()
                     self.device.release_during_wait()
+                    trim_memory()
                     if not self.wait_until(task.next_run):
                         del_cached_property(self, 'config')
                         continue
@@ -579,6 +579,7 @@ class AzurLaneAutoScript:
                     self.run('goto_main')
                     release_resources()
                     self.device.release_during_wait()
+                    trim_memory()
                     if not self.wait_until(task.next_run):
                         del_cached_property(self, 'config')
                         continue
@@ -586,6 +587,7 @@ class AzurLaneAutoScript:
                     logger.info('Stay there during wait')
                     release_resources()
                     self.device.release_during_wait()
+                    trim_memory()
                     if not self.wait_until(task.next_run):
                         del_cached_property(self, 'config')
                         continue
@@ -593,6 +595,7 @@ class AzurLaneAutoScript:
                     logger.warning(f'Invalid Optimization_WhenTaskQueueEmpty: {method}, fallback to stay_there')
                     release_resources()
                     self.device.release_during_wait()
+                    trim_memory()
                     if not self.wait_until(task.next_run):
                         del_cached_property(self, 'config')
                         continue

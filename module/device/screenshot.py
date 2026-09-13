@@ -23,43 +23,15 @@ from module.logger import logger
 
 class DequeFrame(dict):
     """
-    Lightweight frame object storing compressed JPEG bytes and timestamp.
-    Lazily decodes to np.ndarray (RGB) only when 'image' is accessed.
+    Lightweight frame object storing a timestamp and a reference to the
+    screenshot np.ndarray (RGB).  No per-frame encoding is performed;
+    JPEG compression is deferred to save_error_log() where it is actually needed.
     """
 
-    def __init__(self, time, image_bytes=None, image=None):
+    def __init__(self, time, image=None):
         super().__init__()
         self['time'] = time
-        self['image_bytes'] = image_bytes
-        self._cached_image = image
-
-    def __getitem__(self, key):
-        if key == 'image':
-            if self._cached_image is None:
-                image_bytes = self.get('image_bytes')
-                if image_bytes is not None:
-                    bgr = cv2.imdecode(np.frombuffer(image_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
-                    if bgr is not None:
-                        self._cached_image = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-            return self._cached_image
-        return super().__getitem__(key)
-
-    def get(self, key, default=None):
-        if key == 'image':
-            val = self['image']
-            return val if val is not None else default
-        return super().get(key, default)
-
-    def __contains__(self, key):
-        if key == 'image':
-            return True
-        return super().__contains__(key)
-
-    def __setitem__(self, key, value):
-        if key == 'image':
-            self._cached_image = value
-        else:
-            super().__setitem__(key, value)
+        self['image'] = image
 
 
 class Screenshot(Adb, WSA, DroidCast, AScreenCap, Scrcpy, NemuIpc, LDOpenGL):
@@ -111,12 +83,7 @@ class Screenshot(Adb, WSA, DroidCast, AScreenCap, Scrcpy, NemuIpc, LDOpenGL):
             self.image = self._handle_orientated_image(self.image)
 
             if self.config.Error_SaveError and self.image is not None:
-                bgr = cv2.cvtColor(self.image, cv2.COLOR_RGB2BGR)
-                success, buf = cv2.imencode('.jpg', bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
-                if success:
-                    self.screenshot_deque.append(DequeFrame(time=datetime.now(), image_bytes=buf.tobytes()))
-                else:
-                    self.screenshot_deque.append(DequeFrame(time=datetime.now(), image_bytes=None, image=self.image))
+                self.screenshot_deque.append(DequeFrame(time=datetime.now(), image=self.image))
 
             if self.check_screen_size() and self.check_screen_black():
                 break
@@ -162,8 +129,8 @@ class Screenshot(Adb, WSA, DroidCast, AScreenCap, Scrcpy, NemuIpc, LDOpenGL):
         except ValueError:
             logger.error(f'Error_ScreenshotLength={self.config.Error_ScreenshotLength} is not an integer')
             raise RequestHumanTakeover
-        # Limit in 1~100 (clamp maximum capacity to 100 per D-02)
-        length = max(1, min(length, 100))
+        # Limit in 1~50 (clamp maximum capacity to 50)
+        length = max(1, min(length, 50))
         return deque(maxlen=length)
 
     def save_screenshot(self, genre='items', interval=None, to_base_folder=False):
